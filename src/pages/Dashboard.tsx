@@ -3,14 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
 import { generateProtocol } from '@/lib/protocolEngine';
-import { Target, BookOpen, TrendingUp, Briefcase, Clock, Calendar, DollarSign, Dumbbell } from 'lucide-react';
+import { Target, BookOpen, TrendingUp, Briefcase, Clock, Calendar, DollarSign, Dumbbell, Apple, ChevronDown, ChevronUp } from 'lucide-react';
 
-type Tab = 'daily' | 'weekly' | 'financial' | 'entrepreneur' | 'library';
+type Tab = 'daily' | 'weekly' | 'workout' | 'nutrition' | 'financial' | 'entrepreneur' | 'library';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { profile } = useAppStore();
   const [activeTab, setActiveTab] = useState<Tab>('daily');
+  const [expandedWorkout, setExpandedWorkout] = useState<number | null>(0);
+  const [expandedMeal, setExpandedMeal] = useState<number | null>(0);
 
   const protocol = useMemo(() => {
     if (!profile) return null;
@@ -25,6 +27,8 @@ const Dashboard = () => {
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'daily', label: 'Diário', icon: <Clock className="w-4 h-4" /> },
     { id: 'weekly', label: 'Semanal', icon: <Calendar className="w-4 h-4" /> },
+    { id: 'workout', label: 'Treino', icon: <Dumbbell className="w-4 h-4" /> },
+    { id: 'nutrition', label: 'Nutrição', icon: <Apple className="w-4 h-4" /> },
     { id: 'financial', label: 'Financeiro', icon: <DollarSign className="w-4 h-4" /> },
     ...(protocol.entrepreneurProtocol ? [{ id: 'entrepreneur' as Tab, label: 'Empresário', icon: <Briefcase className="w-4 h-4" /> }] : []),
     { id: 'library', label: 'Biblioteca', icon: <BookOpen className="w-4 h-4" /> },
@@ -96,6 +100,165 @@ const Dashboard = () => {
                   <p className="text-sm text-muted-foreground">{item.detail}</p>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* WORKOUT TAB */}
+          {activeTab === 'workout' && (
+            <div className="space-y-4">
+              <div className="mb-6">
+                <p className="text-xs tracking-[0.3em] text-muted-foreground uppercase mb-1">Referências científicas</p>
+                <p className="text-xs text-muted-foreground">NSCA • ACSM • Schoenfeld (2016) • Helms et al. (2015) • Stuart McGill</p>
+              </div>
+              {protocol.workoutPlan.map((day, i) => (
+                <div key={i} className="glass-card overflow-hidden">
+                  <button
+                    onClick={() => setExpandedWorkout(expandedWorkout === i ? null : i)}
+                    className="w-full p-5 flex items-center justify-between text-left"
+                  >
+                    <div>
+                      <span className="text-xs text-muted-foreground font-display tracking-wider uppercase">{day.day}</span>
+                      <h3 className="font-display font-semibold text-sm mt-1">{day.focus}</h3>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground">{day.duration}</span>
+                      {expandedWorkout === i ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                    </div>
+                  </button>
+                  {expandedWorkout === i && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-t border-border">
+                      {/* Warmup */}
+                      <div className="px-5 py-3 bg-secondary/30">
+                        <p className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">Aquecimento:</span> {day.warmup}</p>
+                      </div>
+                      {/* Exercises */}
+                      <div className="divide-y divide-border">
+                        {day.exercises.map((ex, j) => (
+                          <div key={j} className="px-5 py-3 flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{ex.name}</p>
+                              {ex.notes && <p className="text-xs text-muted-foreground mt-1">{ex.notes}</p>}
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground whitespace-nowrap">
+                              <span>{ex.sets}x{ex.reps}</span>
+                              {ex.rest !== '-' && <span className="text-xs px-2 py-0.5 bg-secondary border border-border">{ex.rest}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Cooldown */}
+                      <div className="px-5 py-3 bg-secondary/30">
+                        <p className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">Volta à calma:</span> {day.cooldown}</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* NUTRITION TAB */}
+          {activeTab === 'nutrition' && (
+            <div className="space-y-8">
+              {/* Overview */}
+              <div className="glass-card p-6">
+                <h3 className="font-display font-semibold text-sm tracking-wider uppercase mb-4">Visão Geral</h3>
+                <p className="text-sm text-muted-foreground mb-4">{protocol.nutritionPlan.goal}</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-3 bg-secondary/50 border border-border">
+                    <p className="text-lg font-display font-bold">{protocol.nutritionPlan.dailyCalories}</p>
+                    <p className="text-xs text-muted-foreground">kcal/dia</p>
+                  </div>
+                  <div className="text-center p-3 bg-secondary/50 border border-border">
+                    <p className="text-lg font-display font-bold">{protocol.nutritionPlan.macros.protein}g</p>
+                    <p className="text-xs text-muted-foreground">Proteína</p>
+                  </div>
+                  <div className="text-center p-3 bg-secondary/50 border border-border">
+                    <p className="text-lg font-display font-bold">{protocol.nutritionPlan.macros.carbs}g</p>
+                    <p className="text-xs text-muted-foreground">Carboidratos</p>
+                  </div>
+                  <div className="text-center p-3 bg-secondary/50 border border-border">
+                    <p className="text-lg font-display font-bold">{protocol.nutritionPlan.macros.fat}g</p>
+                    <p className="text-xs text-muted-foreground">Gorduras</p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-4">💧 Hidratação: {protocol.nutritionPlan.hydration}</p>
+              </div>
+
+              {/* Meals */}
+              <div>
+                <h3 className="font-display font-semibold text-sm tracking-wider uppercase mb-4">Refeições Detalhadas</h3>
+                <div className="space-y-3">
+                  {protocol.nutritionPlan.meals.map((meal, i) => (
+                    <div key={i} className="glass-card overflow-hidden">
+                      <button
+                        onClick={() => setExpandedMeal(expandedMeal === i ? null : i)}
+                        className="w-full p-5 flex items-center justify-between text-left"
+                      >
+                        <div>
+                          <span className="text-xs text-muted-foreground">{meal.time}</span>
+                          <h4 className="font-display font-semibold text-sm mt-1">{meal.name}</h4>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <span className="text-sm font-display font-bold">{meal.totalCalories} kcal</span>
+                            <p className="text-xs text-muted-foreground">{meal.totalProtein}g prot</p>
+                          </div>
+                          {expandedMeal === i ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                        </div>
+                      </button>
+                      {expandedMeal === i && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-t border-border">
+                          <div className="divide-y divide-border">
+                            {/* Table header */}
+                            <div className="px-5 py-2 bg-secondary/30 flex items-center gap-4 text-xs text-muted-foreground font-display tracking-wider uppercase">
+                              <span className="flex-1">Alimento</span>
+                              <span className="w-20 text-right">Qtd</span>
+                              <span className="w-14 text-right">Kcal</span>
+                              <span className="w-10 text-right hidden md:block">P</span>
+                              <span className="w-10 text-right hidden md:block">C</span>
+                              <span className="w-10 text-right hidden md:block">G</span>
+                            </div>
+                            {meal.foods.map((food, j) => (
+                              <div key={j} className="px-5 py-3 flex items-center gap-4 text-sm">
+                                <span className="flex-1">{food.item}</span>
+                                <span className="w-20 text-right text-xs text-muted-foreground">{food.quantity}</span>
+                                <span className="w-14 text-right text-xs">{food.calories}</span>
+                                <span className="w-10 text-right text-xs text-muted-foreground hidden md:block">{food.protein}g</span>
+                                <span className="w-10 text-right text-xs text-muted-foreground hidden md:block">{food.carbs}g</span>
+                                <span className="w-10 text-right text-xs text-muted-foreground hidden md:block">{food.fat}g</span>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Supplements */}
+              <div>
+                <h3 className="font-display font-semibold text-sm tracking-wider uppercase mb-4">Suplementação Baseada em Evidências</h3>
+                <div className="space-y-3">
+                  {protocol.nutritionPlan.supplements.map((sup, i) => (
+                    <div key={i} className="glass-card p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h4 className="text-sm font-semibold">{sup.name}</h4>
+                          <p className="text-xs text-muted-foreground mt-1">{sup.dosage} — {sup.timing}</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2 italic">📖 {sup.reference}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 bg-secondary/30 border border-border text-xs text-muted-foreground">
+                <p className="font-semibold text-foreground mb-1">Referências científicas</p>
+                <p>Cálculo baseado em Mifflin-St Jeor (BMR) • ISSN Position Stand (Jäger et al., 2017) • Alan Aragon's Guidelines • Eric Helms — Muscle & Strength Pyramid • Layne Norton Research</p>
+              </div>
             </div>
           )}
 
