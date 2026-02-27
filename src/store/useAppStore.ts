@@ -11,6 +11,10 @@ export interface PersonalProfile {
   mainDistractions: string;
   biggestWeakness: string;
   biggestAmbition: string;
+  workStartTime: string;
+  workEndTime: string;
+  workType: string;
+  preferredTrainingTime: string;
 }
 
 export interface PhysicalProfile {

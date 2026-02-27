@@ -305,6 +305,45 @@ function generateWorkoutPlan(profile: UserProfile): WorkoutDay[] {
   ];
 }
 
+// === SCHEDULE HELPER ===
+
+function parseHour(timeStr: string): number {
+  const [h] = (timeStr || '08:00').split(':').map(Number);
+  return h;
+}
+
+function getScheduleSlots(profile: UserProfile) {
+  const workStart = parseHour(profile.personal.workStartTime);
+  const workEnd = parseHour(profile.personal.workEndTime);
+  const pref = profile.personal.preferredTrainingTime || 'manha';
+
+  let trainTime: number;
+  if (pref === 'manha') trainTime = Math.max(workStart - 2, 5);
+  else if (pref === 'almoco') trainTime = 12;
+  else if (pref === 'tarde') trainTime = workEnd + 1;
+  else trainTime = Math.max(workEnd + 2, 19);
+
+  const wakeHour = pref === 'manha' ? trainTime - 1 : workStart - 2;
+  const wake = Math.max(wakeHour, 4);
+
+  // Meals around work + train
+  const meal1 = wake; // right after waking
+  const preTrain = trainTime - 1;
+  const postTrain = trainTime + 1.5;
+  const lunch = workStart <= 12 && workEnd >= 13 ? 12 : Math.round((workStart + workEnd) / 2);
+  const dinner = Math.max(workEnd + 1, 19);
+  const snack = Math.round((lunch + dinner) / 2);
+  const ceia = dinner + 2;
+
+  const fmt = (h: number) => {
+    const hh = Math.floor(h);
+    const mm = Math.round((h - hh) * 60);
+    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+  };
+
+  return { trainTime: fmt(trainTime), wake: fmt(wake), meal1: fmt(meal1), preTrain: fmt(preTrain), postTrain: fmt(postTrain), lunch: fmt(lunch), dinner: fmt(dinner), snack: fmt(snack), ceia: fmt(ceia) };
+}
+
 // === NUTRITION PROTOCOLS ===
 // Based on: ISSN Position Stands (Jäger et al., 2017), Alan Aragon's guidelines,
 // Eric Helms' Muscle & Strength Pyramid, Layne Norton's research
@@ -347,11 +386,12 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
   const fat = Math.round(weight * fatPerKg);
   const carbCalories = dailyCalories - (protein * 4) - (fat * 9);
   const carbs = Math.round(carbCalories / 4);
+  const schedule = getScheduleSlots(profile);
 
   const meals: Meal[] = objective === 'hipertrofia' ? [
     {
       name: 'Refeição 1 — Pré-treino',
-      time: '06:00',
+      time: schedule.preTrain,
       foods: [
         { item: 'Aveia em flocos', quantity: '80g', calories: 300, protein: 10, carbs: 54, fat: 6 },
         { item: 'Whey protein isolado', quantity: '30g (1 scoop)', calories: 120, protein: 25, carbs: 2, fat: 1 },
@@ -363,7 +403,7 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
     },
     {
       name: 'Refeição 2 — Pós-treino',
-      time: '08:30',
+      time: schedule.postTrain,
       foods: [
         { item: 'Peito de frango grelhado', quantity: '200g', calories: 330, protein: 62, carbs: 0, fat: 7 },
         { item: 'Arroz branco', quantity: '150g (cozido)', calories: 195, protein: 4, carbs: 43, fat: 0 },
@@ -375,7 +415,7 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
     },
     {
       name: 'Refeição 3 — Almoço',
-      time: '12:00',
+      time: schedule.lunch,
       foods: [
         { item: 'Patinho moído (carne vermelha magra)', quantity: '180g', calories: 280, protein: 45, carbs: 0, fat: 10 },
         { item: 'Arroz integral', quantity: '120g (cozido)', calories: 140, protein: 3, carbs: 30, fat: 1 },
@@ -388,7 +428,7 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
     },
     {
       name: 'Refeição 4 — Lanche da tarde',
-      time: '16:00',
+      time: schedule.snack,
       foods: [
         { item: 'Ovos inteiros', quantity: '3 unidades', calories: 210, protein: 18, carbs: 0, fat: 15 },
         { item: 'Pão integral', quantity: '2 fatias', calories: 140, protein: 6, carbs: 24, fat: 2 },
@@ -399,7 +439,7 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
     },
     {
       name: 'Refeição 5 — Jantar',
-      time: '19:30',
+      time: schedule.dinner,
       foods: [
         { item: 'Salmão grelhado', quantity: '180g', calories: 370, protein: 40, carbs: 0, fat: 22 },
         { item: 'Quinoa', quantity: '100g (cozida)', calories: 120, protein: 4, carbs: 21, fat: 2 },
@@ -411,7 +451,7 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
     },
     {
       name: 'Refeição 6 — Ceia (pré-sono)',
-      time: '21:30',
+      time: schedule.ceia,
       foods: [
         { item: 'Caseína ou iogurte grego natural', quantity: '200g', calories: 130, protein: 20, carbs: 6, fat: 3 },
         { item: 'Castanha-do-pará', quantity: '3 unidades', calories: 60, protein: 1, carbs: 1, fat: 6 },
@@ -422,7 +462,7 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
   ] : objective === 'definição' ? [
     {
       name: 'Refeição 1 — Desjejum',
-      time: '07:00',
+      time: schedule.meal1,
       foods: [
         { item: 'Ovos inteiros', quantity: '3 unidades', calories: 210, protein: 18, carbs: 0, fat: 15 },
         { item: 'Claras de ovo', quantity: '3 unidades', calories: 51, protein: 11, carbs: 0, fat: 0 },
@@ -434,7 +474,7 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
     },
     {
       name: 'Refeição 2 — Almoço',
-      time: '12:00',
+      time: schedule.lunch,
       foods: [
         { item: 'Peito de frango grelhado', quantity: '200g', calories: 330, protein: 62, carbs: 0, fat: 7 },
         { item: 'Arroz integral', quantity: '80g (cozido)', calories: 95, protein: 2, carbs: 20, fat: 1 },
@@ -446,7 +486,7 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
     },
     {
       name: 'Refeição 3 — Lanche pré-treino',
-      time: '15:30',
+      time: schedule.preTrain,
       foods: [
         { item: 'Whey protein isolado', quantity: '30g', calories: 120, protein: 25, carbs: 2, fat: 1 },
         { item: 'Banana', quantity: '1 unidade', calories: 105, protein: 1, carbs: 27, fat: 0 },
@@ -456,7 +496,7 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
     },
     {
       name: 'Refeição 4 — Jantar (pós-treino)',
-      time: '19:00',
+      time: schedule.postTrain,
       foods: [
         { item: 'Tilápia grelhada', quantity: '200g', calories: 200, protein: 42, carbs: 0, fat: 3 },
         { item: 'Batata doce', quantity: '120g', calories: 104, protein: 2, carbs: 24, fat: 0 },
@@ -467,7 +507,7 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
     },
     {
       name: 'Refeição 5 — Ceia',
-      time: '21:00',
+      time: schedule.ceia,
       foods: [
         { item: 'Caseína ou iogurte grego 0%', quantity: '200g', calories: 100, protein: 18, carbs: 6, fat: 0 },
         { item: 'Semente de chia', quantity: '10g', calories: 49, protein: 2, carbs: 4, fat: 3 },
@@ -479,7 +519,7 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
     // Performance / Saúde
     {
       name: 'Refeição 1 — Desjejum',
-      time: '07:00',
+      time: schedule.meal1,
       foods: [
         { item: 'Aveia em flocos', quantity: '60g', calories: 225, protein: 8, carbs: 41, fat: 4 },
         { item: 'Whey protein', quantity: '30g', calories: 120, protein: 25, carbs: 2, fat: 1 },
@@ -491,7 +531,7 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
     },
     {
       name: 'Refeição 2 — Almoço',
-      time: '12:00',
+      time: schedule.lunch,
       foods: [
         { item: 'Frango ou peixe', quantity: '180g', calories: 300, protein: 50, carbs: 0, fat: 8 },
         { item: 'Arroz + Feijão', quantity: '150g + 80g', calories: 280, protein: 10, carbs: 50, fat: 2 },
@@ -503,7 +543,7 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
     },
     {
       name: 'Refeição 3 — Lanche',
-      time: '16:00',
+      time: schedule.snack,
       foods: [
         { item: 'Ovos (inteiros)', quantity: '2 unidades', calories: 140, protein: 12, carbs: 0, fat: 10 },
         { item: 'Abacate', quantity: '80g', calories: 128, protein: 2, carbs: 7, fat: 12 },
@@ -514,7 +554,7 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
     },
     {
       name: 'Refeição 4 — Jantar',
-      time: '19:30',
+      time: schedule.dinner,
       foods: [
         { item: 'Carne vermelha magra', quantity: '180g', calories: 280, protein: 45, carbs: 0, fat: 10 },
         { item: 'Batata doce ou mandioca', quantity: '150g', calories: 130, protein: 2, carbs: 30, fat: 0 },
@@ -525,7 +565,7 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
     },
     {
       name: 'Refeição 5 — Ceia',
-      time: '21:00',
+      time: schedule.ceia,
       foods: [
         { item: 'Iogurte grego natural', quantity: '170g', calories: 100, protein: 17, carbs: 6, fat: 0 },
         { item: 'Castanha-do-pará', quantity: '2 unidades', calories: 40, protein: 1, carbs: 1, fat: 4 },
@@ -563,28 +603,31 @@ export function generateProtocol(profile: UserProfile) {
   const { personal, physical, mental, financial, entrepreneur } = profile;
   const focusLevel = mental.focusLevel;
   const sleepHours = parseFloat(mental.avgSleepHours) || 7;
+  const schedule = getScheduleSlots(profile);
 
-  const wakeUpHour = sleepHours >= 7 ? '05:30' : '06:00';
+  const workStart = parseHour(personal.workStartTime);
+  const workEnd = parseHour(personal.workEndTime);
   const sleepHour = sleepHours >= 7 ? '22:00' : '22:30';
 
+  const trainLabel = physical.objective === 'hipertrofia' ? 'Treino de força — Hipertrofia' : physical.objective === 'definição' ? 'Treino HIIT + Força' : 'Treino funcional / Performance';
+
   const dailyProtocol = [
-    { time: wakeUpHour, activity: 'Despertar — Sem celular por 30 min', icon: '⏰' },
-    { time: '06:00', activity: 'Hidratação + Exposição solar (10 min)', icon: '☀️' },
-    { time: '06:30', activity: physical.objective === 'hipertrofia' ? 'Treino de força — Hipertrofia' : physical.objective === 'definição' ? 'Treino HIIT + Força' : 'Treino funcional / Performance', icon: '🏋️' },
-    { time: '08:00', activity: 'Refeição 1 — Alta proteína', icon: '🥩' },
-    { time: '08:30', activity: `Bloco de foco profundo #1 (${focusLevel >= 7 ? '120' : '90'} min)`, icon: '🎯' },
-    { time: '10:30', activity: 'Pausa estratégica — Caminhada ou respiração', icon: '🌬️' },
-    { time: '11:00', activity: `Bloco de foco profundo #2 (${focusLevel >= 7 ? '120' : '90'} min)`, icon: '🎯' },
-    { time: '13:00', activity: 'Refeição 2 — Balanceada', icon: '🥗' },
-    { time: '14:00', activity: 'Bloco de execução — Tarefas operacionais', icon: '⚡' },
-    { time: '16:00', activity: 'Refeição 3 — Leve', icon: '🍎' },
-    { time: '16:30', activity: 'Leitura estratégica (30 min)', icon: '📚' },
-    { time: '17:00', activity: 'Bloco de foco profundo #3 (90 min)', icon: '🎯' },
-    { time: '19:00', activity: 'Refeição 4 — Jantar', icon: '🍽️' },
-    { time: '20:00', activity: 'Tempo de lazer controlado (60 min)', icon: '🎮' },
-    { time: '21:00', activity: 'Revisão do dia + Planejamento do próximo', icon: '📋' },
+    { time: schedule.wake, activity: 'Despertar — Sem celular por 30 min', icon: '⏰' },
+    { time: schedule.meal1, activity: 'Hidratação + Refeição 1', icon: '☀️' },
+    { time: schedule.trainTime, activity: trainLabel, icon: '🏋️' },
+    { time: schedule.postTrain, activity: 'Refeição pós-treino', icon: '🥩' },
+    { time: `${String(workStart).padStart(2, '0')}:00`, activity: `Bloco de foco profundo #1 (${focusLevel >= 7 ? '120' : '90'} min)`, icon: '🎯' },
+    { time: `${String(workStart + 2).padStart(2, '0')}:30`, activity: 'Pausa estratégica — Caminhada ou respiração', icon: '🌬️' },
+    { time: `${String(workStart + 3).padStart(2, '0')}:00`, activity: `Bloco de foco profundo #2 (${focusLevel >= 7 ? '120' : '90'} min)`, icon: '🎯' },
+    { time: schedule.lunch, activity: 'Refeição — Almoço', icon: '🥗' },
+    { time: `${String(Math.min(workEnd - 2, 15)).padStart(2, '0')}:00`, activity: 'Bloco de execução — Tarefas operacionais', icon: '⚡' },
+    { time: schedule.snack, activity: 'Refeição — Lanche', icon: '🍎' },
+    { time: `${String(workEnd - 1).padStart(2, '0')}:30`, activity: 'Leitura estratégica (30 min)', icon: '📚' },
+    { time: schedule.dinner, activity: 'Refeição — Jantar', icon: '🍽️' },
+    { time: `${String(workEnd + 2).padStart(2, '0')}:00`, activity: 'Tempo de lazer controlado (60 min)', icon: '🎮' },
+    { time: schedule.ceia, activity: 'Ceia + Revisão do dia', icon: '📋' },
     { time: sleepHour, activity: 'Protocolo de sono — Sem telas', icon: '🌙' },
-  ];
+  ].sort((a, b) => a.time.localeCompare(b.time));
 
   const weeklyProtocol = [
     { day: 'Segunda', focus: 'Bloco máximo de execução', detail: 'Dia de maior produtividade. Zero distrações.' },
