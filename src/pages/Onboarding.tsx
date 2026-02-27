@@ -15,6 +15,8 @@ const Onboarding = () => {
     age: '', profession: '', maritalStatus: '', city: '',
     currentIncome: '', incomeGoal: '', currentRoutine: '',
     mainDistractions: '', biggestWeakness: '', biggestAmbition: '',
+    workStartTime: '08:00', workEndTime: '18:00', workType: 'presencial',
+    preferredTrainingTime: 'manha',
   });
 
   const [physical, setPhysical] = useState({
@@ -71,6 +73,22 @@ const Onboarding = () => {
             <div><label className={labelClass}>Principais Distrações</label><input className={inputClass} value={personal.mainDistractions} onChange={(e) => setPersonal({ ...personal, mainDistractions: e.target.value })} placeholder="Redes sociais, séries..." /></div>
             <div><label className={labelClass}>Maior Fraqueza</label><input className={inputClass} value={personal.biggestWeakness} onChange={(e) => setPersonal({ ...personal, biggestWeakness: e.target.value })} placeholder="Procrastinação..." /></div>
             <div className="md:col-span-2"><label className={labelClass}>Maior Ambição</label><input className={inputClass} value={personal.biggestAmbition} onChange={(e) => setPersonal({ ...personal, biggestAmbition: e.target.value })} placeholder="Liberdade financeira..." /></div>
+            <div><label className={labelClass}>Horário de Início do Trabalho</label>
+              <input type="time" className={inputClass} value={personal.workStartTime} onChange={(e) => setPersonal({ ...personal, workStartTime: e.target.value })} />
+            </div>
+            <div><label className={labelClass}>Horário de Fim do Trabalho</label>
+              <input type="time" className={inputClass} value={personal.workEndTime} onChange={(e) => setPersonal({ ...personal, workEndTime: e.target.value })} />
+            </div>
+            <div><label className={labelClass}>Tipo de Trabalho</label>
+              <select className={selectClass} value={personal.workType} onChange={(e) => setPersonal({ ...personal, workType: e.target.value })}>
+                <option value="presencial">Presencial</option><option value="remoto">Remoto</option><option value="hibrido">Híbrido</option>
+              </select>
+            </div>
+            <div><label className={labelClass}>Melhor Horário para Treinar</label>
+              <select className={selectClass} value={personal.preferredTrainingTime} onChange={(e) => setPersonal({ ...personal, preferredTrainingTime: e.target.value })}>
+                <option value="manha">Manhã (antes do trabalho)</option><option value="almoco">Horário de almoço</option><option value="tarde">Tarde (após o trabalho)</option><option value="noite">Noite</option>
+              </select>
+            </div>
           </div>
         );
       case 1:
