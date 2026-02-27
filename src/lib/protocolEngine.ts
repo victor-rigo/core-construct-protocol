@@ -41,265 +41,253 @@ interface NutritionPlan {
 
 function generateWorkoutPlan(profile: UserProfile): WorkoutDay[] {
   const objective = profile.physical.objective;
-  const frequency = parseInt(profile.physical.trainingFrequency) || 4;
   const injuries = profile.physical.injuries?.toLowerCase() || '';
 
   const hasKneeIssue = injuries.includes('joelho') || injuries.includes('knee');
   const hasShoulderIssue = injuries.includes('ombro') || injuries.includes('shoulder');
   const hasBackIssue = injuries.includes('costas') || injuries.includes('lombar') || injuries.includes('back');
 
+  // =====================================================================
+  // METODOLOGIA LOW VOLUME — Samuel Meller
+  // Ref: "5 Pilares do Low Volume" (Samuel Meller, 2024)
+  //
+  // PILAR 1: BAIXO VOLUME — Poucas séries por grupo muscular (4-8 séries/semana)
+  // PILAR 2: ALTA INTENSIDADE — Séries levadas próximas ou até a falha concêntrica
+  // PILAR 3: EXERCÍCIOS COMPOSTOS como base — Máximo estímulo com mínimo volume
+  // PILAR 4: PROGRESSÃO DE CARGA — Sobrecarga progressiva como driver principal
+  // PILAR 5: RECUPERAÇÃO ADEQUADA — Menos volume = mais recuperação = mais crescimento
+  //
+  // Estrutura: 2-3 séries de trabalho por exercício (após warm-up sets)
+  // Cada série: levar próximo à falha (RPE 8-10)
+  // Treinos curtos: 30-45 min
+  // Frequência: 3-5x/semana (cada músculo 2x/semana)
+  // =====================================================================
+
   if (objective === 'hipertrofia') {
-    // Push/Pull/Legs — Schoenfeld (2016) meta-analysis: 10-20 sets/muscle/week, 6-12 reps
+    // Upper/Lower Split — Low Volume — 4x/semana
+    // ~6-8 séries de trabalho por grupo muscular por semana
     return [
       {
         day: 'Segunda',
-        focus: 'Peito, Ombro, Tríceps (Push)',
-        warmup: '5 min esteira + rotação de ombros + 2x15 supino barra vazia',
-        duration: '60-75 min',
-        cooldown: 'Alongamento peitoral e ombros — 5 min',
+        focus: 'Upper A — Peito, Costas, Ombro (Low Volume)',
+        warmup: '2 séries progressivas do primeiro exercício (50% e 75% da carga de trabalho)',
+        duration: '30-40 min',
+        cooldown: 'Alongamento leve — 3 min',
         exercises: [
-          { name: hasShoulderIssue ? 'Supino com halteres (neutro)' : 'Supino reto com barra', sets: 4, reps: '8-10', rest: '90s', notes: 'Progressão de carga semanal (2.5%)' },
-          { name: 'Supino inclinado com halteres', sets: 3, reps: '10-12', rest: '75s', notes: 'Foco na contração do peitoral superior' },
-          { name: hasShoulderIssue ? 'Elevação lateral com cabos' : 'Desenvolvimento militar com barra', sets: 4, reps: '8-10', rest: '90s' },
-          { name: 'Elevação lateral com halteres', sets: 3, reps: '12-15', rest: '60s', notes: 'Pausa no topo — 2s' },
-          { name: 'Tríceps na polia (corda)', sets: 3, reps: '12-15', rest: '60s' },
-          { name: 'Tríceps testa com barra EZ', sets: 3, reps: '10-12', rest: '60s' },
-          { name: 'Crossover na polia', sets: 3, reps: '12-15', rest: '60s', notes: 'Finalizador — foco na contração' },
+          { name: hasShoulderIssue ? 'Supino com halteres (neutro)' : 'Supino reto com barra', sets: 2, reps: '6-8', rest: '120-180s', notes: 'Séries de TRABALHO — RPE 9-10. Levar próximo à falha. Progressão de carga semanal.' },
+          { name: 'Supino inclinado com halteres', sets: 2, reps: '8-10', rest: '120s', notes: 'RPE 9. Foco na contração e controle excêntrico (3s descida).' },
+          { name: hasBackIssue ? 'Pulldown na polia' : 'Barra fixa (pronada)', sets: 2, reps: '6-10', rest: '120-180s', notes: 'RPE 9-10. Adicionar carga externa se necessário.' },
+          { name: 'Remada curvada com barra', sets: 2, reps: '8-10', rest: '120s', notes: 'RPE 9. Puxar para a linha do umbigo. Pausa de 1s na contração.' },
+          { name: hasShoulderIssue ? 'Elevação lateral com cabos' : 'Elevação lateral com halteres', sets: 2, reps: '10-15', rest: '90s', notes: 'RPE 10 (até a falha). Pausa no topo — 2s.' },
         ],
       },
       {
         day: 'Terça',
-        focus: 'Costas e Bíceps (Pull)',
-        warmup: '5 min remo ergômetro + pull-aparts com elástico',
-        duration: '60-75 min',
-        cooldown: 'Alongamento dorsal e bíceps — 5 min',
+        focus: 'Lower A — Quadríceps, Posterior, Panturrilha (Low Volume)',
+        warmup: '2 séries progressivas de agachamento (50% e 75% da carga)',
+        duration: '30-40 min',
+        cooldown: 'Alongamento de quadríceps e isquiotibiais — 3 min',
         exercises: [
-          { name: hasBackIssue ? 'Pulldown na polia' : 'Barra fixa (pronada)', sets: 4, reps: '6-10', rest: '90s', notes: 'Adicionar carga se >10 reps' },
-          { name: 'Remada curvada com barra', sets: 4, reps: '8-10', rest: '90s', notes: hasBackIssue ? 'Manter core rígido, amplitude reduzida' : 'Puxar para o abdômen' },
-          { name: 'Remada unilateral com haltere', sets: 3, reps: '10-12', rest: '75s' },
-          { name: 'Pulldown pegada neutra', sets: 3, reps: '12-15', rest: '60s' },
-          { name: 'Face pull na polia', sets: 3, reps: '15-20', rest: '60s', notes: 'Saúde do ombro — Ref: Eric Cressey' },
-          { name: 'Rosca direta com barra EZ', sets: 3, reps: '10-12', rest: '60s' },
-          { name: 'Rosca martelo com halteres', sets: 3, reps: '12-15', rest: '60s' },
+          { name: hasKneeIssue ? 'Leg press 45°' : 'Agachamento livre com barra', sets: 2, reps: '6-8', rest: '180s', notes: 'RPE 9-10. Exercício composto principal. Profundidade completa se possível.' },
+          { name: hasKneeIssue ? 'Leg press (pés altos)' : 'Agachamento búlgaro com halteres', sets: 2, reps: '8-10 (cada)', rest: '120s', notes: 'RPE 9. Exercício unilateral — corrige desequilíbrios.' },
+          { name: 'Mesa flexora', sets: 2, reps: '8-12', rest: '120s', notes: 'RPE 9-10. Foco na excêntrica controlada (4s).' },
+          { name: hasBackIssue ? 'Stiff com halteres (amplitude reduzida)' : 'Stiff com barra', sets: 2, reps: '8-10', rest: '120s', notes: 'RPE 8-9. Foco no alongamento dos isquiotibiais sob carga.' },
+          { name: 'Panturrilha em pé (Smith)', sets: 3, reps: '10-15', rest: '90s', notes: 'RPE 10 (até a falha). Pausa de 2s no alongamento máximo.' },
         ],
       },
       {
         day: 'Quarta',
-        focus: 'Pernas e Glúteos (Legs)',
-        warmup: '5 min bike + agachamento corporal 2x15 + mobilidade de quadril',
-        duration: '60-75 min',
-        cooldown: 'Alongamento de quadríceps, isquiotibiais e panturrilha — 5 min',
+        focus: 'Descanso — Recuperação ativa',
+        warmup: '-',
+        duration: '20-30 min (opcional)',
+        cooldown: '-',
         exercises: [
-          { name: hasKneeIssue ? 'Leg press 45°' : 'Agachamento livre com barra', sets: 4, reps: '6-8', rest: '120s', notes: 'Exercício composto principal — foco em profundidade' },
-          { name: hasKneeIssue ? 'Agachamento búlgaro (amplitude controlada)' : 'Agachamento búlgaro com halteres', sets: 3, reps: '10-12', rest: '90s' },
-          { name: 'Leg press 45°', sets: 3, reps: '12-15', rest: '90s', notes: 'Pés altos para ênfase em glúteos' },
-          { name: 'Cadeira extensora', sets: 3, reps: '12-15', rest: '60s', notes: hasKneeIssue ? 'Amplitude parcial — evitar extensão total' : 'Contração no topo — 2s' },
-          { name: 'Mesa flexora', sets: 4, reps: '10-12', rest: '75s' },
-          { name: 'Stiff com barra', sets: 3, reps: '10-12', rest: '90s', notes: hasBackIssue ? 'Usar halteres, amplitude reduzida' : 'Foco no alongamento dos isquiotibiais' },
-          { name: 'Panturrilha em pé (Smith)', sets: 4, reps: '15-20', rest: '60s' },
+          { name: 'Caminhada leve ou mobilidade articular', sets: 1, reps: '20-30 min', rest: '-', notes: 'Low Volume exige recuperação. O músculo cresce no descanso. Ref: Samuel Meller — Pilar 5.' },
         ],
       },
       {
         day: 'Quinta',
-        focus: 'Peito, Ombro, Tríceps (Push B)',
-        warmup: '5 min esteira + aquecimento articular de ombros',
-        duration: '60-75 min',
-        cooldown: 'Alongamento peitoral e tríceps — 5 min',
+        focus: 'Upper B — Peito, Costas, Braços (Low Volume)',
+        warmup: '2 séries progressivas do primeiro exercício (50% e 75%)',
+        duration: '30-40 min',
+        cooldown: 'Alongamento leve — 3 min',
         exercises: [
-          { name: 'Supino inclinado com barra', sets: 4, reps: '8-10', rest: '90s' },
-          { name: 'Supino reto com halteres', sets: 3, reps: '10-12', rest: '75s' },
-          { name: 'Elevação lateral com halteres', sets: 4, reps: '12-15', rest: '60s' },
-          { name: 'Elevação frontal alternada', sets: 3, reps: '12-15', rest: '60s' },
-          { name: 'Mergulho em paralela', sets: 3, reps: '8-12', rest: '90s', notes: hasShoulderIssue ? 'Substituir por tríceps na polia' : '' },
-          { name: 'Tríceps francês com haltere', sets: 3, reps: '10-12', rest: '60s' },
+          { name: 'Supino inclinado com barra', sets: 2, reps: '6-8', rest: '120-180s', notes: 'RPE 9-10. Variação de ângulo para estímulo diferente do Upper A.' },
+          { name: hasBackIssue ? 'Remada na máquina' : 'Remada cavaleiro (T-bar)', sets: 2, reps: '8-10', rest: '120s', notes: 'RPE 9. Foco na retração escapular completa.' },
+          { name: 'Pulldown pegada neutra', sets: 2, reps: '8-12', rest: '120s', notes: 'RPE 9-10. Ênfase no alongamento da dorsal na fase excêntrica.' },
+          { name: 'Rosca direta com barra EZ', sets: 2, reps: '8-12', rest: '90s', notes: 'RPE 10 (falha). Bíceps: grupo pequeno = poucas séries bastam.' },
+          { name: 'Tríceps na polia (corda)', sets: 2, reps: '10-15', rest: '90s', notes: 'RPE 10 (falha). Extensão completa + contração no pico.' },
         ],
       },
       {
         day: 'Sexta',
-        focus: 'Costas e Bíceps (Pull B)',
-        warmup: '5 min remo ergômetro + ativação escapular',
-        duration: '60-75 min',
-        cooldown: 'Alongamento dorsal — 5 min',
+        focus: 'Lower B — Posterior, Quadríceps, Glúteos (Low Volume)',
+        warmup: '2 séries progressivas do primeiro exercício (50% e 75%)',
+        duration: '30-40 min',
+        cooldown: 'Foam rolling + alongamento — 5 min',
         exercises: [
-          { name: 'Remada cavaleiro (T-bar)', sets: 4, reps: '8-10', rest: '90s' },
-          { name: 'Pulldown pegada aberta', sets: 3, reps: '10-12', rest: '75s' },
-          { name: 'Remada na polia baixa (triângulo)', sets: 3, reps: '10-12', rest: '75s' },
-          { name: 'Pullover na polia', sets: 3, reps: '12-15', rest: '60s' },
-          { name: 'Face pull', sets: 3, reps: '15-20', rest: '60s' },
-          { name: 'Rosca Scott com barra EZ', sets: 3, reps: '10-12', rest: '60s' },
-          { name: 'Rosca concentrada', sets: 3, reps: '12-15', rest: '60s' },
+          { name: hasBackIssue ? 'Leg press 45°' : 'Terra (deadlift convencional)', sets: 2, reps: '5-6', rest: '180-240s', notes: 'RPE 9. Composto pesado. Técnica impecável > carga. Ref: Samuel Meller — Pilar 3.' },
+          { name: 'Leg press 45°', sets: 2, reps: '8-12', rest: '120s', notes: 'RPE 9-10. Volume complementar para quadríceps.' },
+          { name: 'Cadeira extensora', sets: 2, reps: '10-15', rest: '90s', notes: hasKneeIssue ? 'Amplitude parcial. RPE 9.' : 'RPE 10 (falha). Contração no topo — 2s.' },
+          { name: 'Elevação pélvica (hip thrust)', sets: 2, reps: '8-12', rest: '120s', notes: 'RPE 9-10. Pausa de 2s na contração máxima do glúteo.' },
+          { name: 'Panturrilha sentado', sets: 3, reps: '10-15', rest: '90s', notes: 'RPE 10 (falha). Sóleo — excêntrica lenta.' },
         ],
       },
       {
-        day: 'Sábado',
-        focus: 'Pernas e Glúteos (Legs B)',
-        warmup: '5 min bike + mobilidade de quadril e tornozelo',
-        duration: '60-75 min',
-        cooldown: 'Foam rolling + alongamento geral — 10 min',
+        day: 'Sábado / Domingo',
+        focus: 'Descanso total ou recuperação ativa',
+        warmup: '-',
+        duration: '-',
+        cooldown: '-',
         exercises: [
-          { name: 'Agachamento frontal', sets: 4, reps: '8-10', rest: '120s', notes: hasKneeIssue ? 'Substituir por hack squat' : 'Foco em core e quadríceps' },
-          { name: 'Passada com halteres', sets: 3, reps: '12 (cada)', rest: '90s' },
-          { name: 'Leg press (pés juntos)', sets: 3, reps: '12-15', rest: '75s' },
-          { name: 'Cadeira adutora', sets: 3, reps: '15-20', rest: '60s' },
-          { name: 'Mesa flexora unilateral', sets: 3, reps: '10-12', rest: '60s' },
-          { name: 'Elevação pélvica (hip thrust)', sets: 4, reps: '10-12', rest: '90s', notes: 'Ref: Bret Contreras — glute activation' },
-          { name: 'Panturrilha sentado', sets: 4, reps: '15-20', rest: '60s' },
+          { name: 'Descanso completo ou caminhada leve', sets: 1, reps: '-', rest: '-', notes: 'Recuperação é parte do protocolo. Low Volume = alta intensidade + recuperação plena.' },
         ],
       },
     ];
   }
 
   if (objective === 'definição') {
-    // Higher volume, shorter rest — ACSM guidelines for fat loss + muscle preservation
+    // Low Volume em déficit — preservação muscular máxima
+    // Volume AINDA MENOR em cutting para evitar overreaching
+    // Ref: Samuel Meller — em déficit, reduza volume mas mantenha intensidade e carga
     return [
       {
         day: 'Segunda',
-        focus: 'Full Body A — Força + Metabólico',
-        warmup: '10 min HIIT na bike (30s sprint / 30s recover) + mobilidade geral',
-        duration: '60 min',
-        cooldown: 'Alongamento ativo — 5 min',
+        focus: 'Upper — Push + Pull (Low Volume Cutting)',
+        warmup: '2 séries progressivas (50% e 75%)',
+        duration: '25-35 min',
+        cooldown: 'Alongamento — 3 min',
         exercises: [
-          { name: 'Agachamento livre', sets: 4, reps: '8-10', rest: '90s' },
-          { name: 'Supino reto com halteres', sets: 4, reps: '10-12', rest: '75s' },
-          { name: 'Remada curvada', sets: 4, reps: '10-12', rest: '75s' },
-          { name: 'Desenvolvimento com halteres', sets: 3, reps: '10-12', rest: '60s' },
-          { name: 'Circuito finalizador: Burpee + Mountain Climber + Prancha', sets: 3, reps: '30s cada', rest: '60s', notes: 'EPOC — queima calórica pós-treino' },
+          { name: hasShoulderIssue ? 'Supino com halteres' : 'Supino reto com barra', sets: 2, reps: '6-8', rest: '120-180s', notes: 'RPE 9. MANTER A CARGA do bulk — sinal de preservação muscular.' },
+          { name: hasBackIssue ? 'Pulldown na polia' : 'Barra fixa', sets: 2, reps: '6-10', rest: '120s', notes: 'RPE 9. Composto pesado — prioridade em cutting.' },
+          { name: 'Remada curvada com barra', sets: 2, reps: '8-10', rest: '120s', notes: 'RPE 9. Manter força = manter músculo.' },
+          { name: 'Elevação lateral com halteres', sets: 2, reps: '12-15', rest: '90s', notes: 'RPE 10. Deltoides respondem bem a poucas séries intensas.' },
         ],
       },
       {
         day: 'Terça',
-        focus: 'HIIT + Core',
-        warmup: '5 min corrida leve',
-        duration: '40 min',
-        cooldown: 'Alongamento + respiração — 5 min',
+        focus: 'Lower — Quadríceps e Posterior (Low Volume Cutting)',
+        warmup: '2 séries progressivas (50% e 75%)',
+        duration: '25-35 min',
+        cooldown: 'Alongamento — 3 min',
         exercises: [
-          { name: 'Sprint na esteira (ou rua)', sets: 8, reps: '30s sprint / 60s caminhada', rest: '-' },
-          { name: 'Prancha abdominal', sets: 3, reps: '45-60s', rest: '30s' },
-          { name: 'Abdominal bicicleta', sets: 3, reps: '20', rest: '30s' },
-          { name: 'Prancha lateral', sets: 3, reps: '30s cada lado', rest: '30s' },
-          { name: 'Dead bug', sets: 3, reps: '12', rest: '30s', notes: 'Ref: Stuart McGill — estabilidade lombar' },
+          { name: hasKneeIssue ? 'Leg press 45°' : 'Agachamento livre', sets: 2, reps: '6-8', rest: '180s', notes: 'RPE 9. Não reduza carga — reduza volume se necessário.' },
+          { name: 'Mesa flexora', sets: 2, reps: '8-12', rest: '120s', notes: 'RPE 9-10.' },
+          { name: hasBackIssue ? 'Stiff com halteres' : 'Stiff com barra', sets: 2, reps: '8-10', rest: '120s', notes: 'RPE 8-9.' },
+          { name: 'Panturrilha em pé', sets: 2, reps: '10-15', rest: '90s', notes: 'RPE 10 (falha).' },
         ],
       },
       {
         day: 'Quarta',
-        focus: 'Full Body B — Hipertrofia + Volume',
-        warmup: '5 min remo + aquecimento articular',
-        duration: '60 min',
-        cooldown: 'Alongamento estático — 5 min',
+        focus: 'Cardio LISS + Recuperação',
+        warmup: '-',
+        duration: '30-40 min',
+        cooldown: 'Foam rolling — 5 min',
         exercises: [
-          { name: hasKneeIssue ? 'Leg press' : 'Agachamento búlgaro', sets: 3, reps: '10-12', rest: '75s' },
-          { name: 'Supino inclinado com halteres', sets: 3, reps: '10-12', rest: '75s' },
-          { name: 'Pulldown pegada neutra', sets: 3, reps: '10-12', rest: '75s' },
-          { name: 'Elevação lateral', sets: 3, reps: '15', rest: '45s' },
-          { name: 'Rosca + Tríceps (bi-set)', sets: 3, reps: '12 cada', rest: '60s' },
-          { name: 'Circuito: Kettlebell swing + Box jump + Battle ropes', sets: 3, reps: '30s cada', rest: '60s' },
+          { name: 'Caminhada inclinada (esteira 10-15%)', sets: 1, reps: '30-40 min', rest: '-', notes: 'Zona 2 (60-70% FCmax). Cardio que não atrapalha a recuperação muscular.' },
         ],
       },
       {
         day: 'Quinta',
-        focus: 'Cardio LISS + Mobilidade',
-        warmup: '-',
-        duration: '45 min',
-        cooldown: 'Foam rolling — 10 min',
+        focus: 'Upper — Push + Pull B (Low Volume Cutting)',
+        warmup: '2 séries progressivas (50% e 75%)',
+        duration: '25-35 min',
+        cooldown: 'Alongamento — 3 min',
         exercises: [
-          { name: 'Caminhada inclinada (esteira 10-15%)', sets: 1, reps: '30-40 min', rest: '-', notes: 'Zona 2 — 60-70% FCmax. Ref: Peter Attia — longevidade' },
-          { name: 'Yoga flow ou mobilidade articular', sets: 1, reps: '15 min', rest: '-' },
+          { name: 'Supino inclinado com halteres', sets: 2, reps: '8-10', rest: '120s', notes: 'RPE 9. Variação de ângulo.' },
+          { name: 'Remada na polia baixa (triângulo)', sets: 2, reps: '8-10', rest: '120s', notes: 'RPE 9.' },
+          { name: 'Rosca direta com barra EZ', sets: 2, reps: '8-12', rest: '90s', notes: 'RPE 10 (falha).' },
+          { name: 'Tríceps na polia (corda)', sets: 2, reps: '10-15', rest: '90s', notes: 'RPE 10 (falha).' },
         ],
       },
       {
         day: 'Sexta',
-        focus: 'Full Body C — Força + Potência',
-        warmup: '5 min pular corda + aquecimento dinâmico',
-        duration: '60 min',
-        cooldown: 'Alongamento — 5 min',
+        focus: 'Lower B (Low Volume Cutting)',
+        warmup: '2 séries progressivas (50% e 75%)',
+        duration: '25-35 min',
+        cooldown: 'Alongamento — 3 min',
         exercises: [
-          { name: 'Terra (deadlift)', sets: 4, reps: '6-8', rest: '120s', notes: hasBackIssue ? 'Substituir por trap bar deadlift' : 'Exercício rei — foco em técnica' },
-          { name: 'Barra fixa', sets: 3, reps: '6-10', rest: '90s' },
-          { name: 'Supino reto com barra', sets: 3, reps: '6-8', rest: '90s' },
-          { name: 'Thruster com halteres', sets: 3, reps: '10-12', rest: '75s' },
-          { name: 'Farmer walk', sets: 3, reps: '40m', rest: '60s', notes: 'Grip + core + condicionamento' },
+          { name: hasBackIssue ? 'Leg press 45°' : 'Terra (deadlift)', sets: 2, reps: '5-6', rest: '180s', notes: 'RPE 9. Composto pesado — essencial para preservar força em cutting.' },
+          { name: 'Leg press 45°', sets: 2, reps: '10-12', rest: '120s', notes: 'RPE 9.' },
+          { name: 'Cadeira extensora', sets: 2, reps: '10-15', rest: '90s', notes: hasKneeIssue ? 'Amplitude parcial. RPE 9.' : 'RPE 10 (falha).' },
+          { name: 'Panturrilha sentado', sets: 2, reps: '10-15', rest: '90s', notes: 'RPE 10 (falha).' },
         ],
       },
       {
-        day: 'Sábado',
-        focus: 'Cardio ativo (opcional)',
+        day: 'Sábado / Domingo',
+        focus: 'Recuperação + Cardio leve (opcional)',
         warmup: '-',
-        duration: '30-45 min',
+        duration: '-',
         cooldown: '-',
         exercises: [
-          { name: 'Corrida leve, natação ou ciclismo', sets: 1, reps: '30-45 min', rest: '-', notes: 'Atividade recreativa — recuperação ativa' },
+          { name: 'Descanso ou caminhada leve (30 min)', sets: 1, reps: '-', rest: '-', notes: 'Em déficit calórico, a recuperação é AINDA mais importante. Ref: Samuel Meller.' },
         ],
       },
     ];
   }
 
-  // Performance / Saúde — Functional approach
+  // Performance / Saúde — Low Volume funcional
   return [
     {
       day: 'Segunda',
-      focus: 'Força — Upper Body',
-      warmup: '5 min remo + ativação escapular + rotação de ombros',
-      duration: '55 min',
-      cooldown: 'Alongamento de ombros e peitorais — 5 min',
+      focus: 'Upper Body — Compostos (Low Volume)',
+      warmup: '2 séries progressivas (50% e 75%)',
+      duration: '30-35 min',
+      cooldown: 'Alongamento — 3 min',
       exercises: [
-        { name: 'Supino reto com barra', sets: 4, reps: '6-8', rest: '120s' },
-        { name: 'Remada curvada', sets: 4, reps: '8-10', rest: '90s' },
-        { name: 'Desenvolvimento com halteres', sets: 3, reps: '10-12', rest: '75s' },
-        { name: 'Face pull', sets: 3, reps: '15', rest: '60s' },
-        { name: 'Rosca + Tríceps bi-set', sets: 3, reps: '12 cada', rest: '60s' },
+        { name: 'Supino reto com barra', sets: 2, reps: '6-8', rest: '120-180s', notes: 'RPE 9. Progressão de carga é o objetivo principal.' },
+        { name: 'Remada curvada com barra', sets: 2, reps: '8-10', rest: '120s', notes: 'RPE 9.' },
+        { name: hasShoulderIssue ? 'Elevação lateral com cabos' : 'Desenvolvimento com halteres', sets: 2, reps: '8-10', rest: '120s', notes: 'RPE 9.' },
+        { name: 'Face pull na polia', sets: 2, reps: '12-15', rest: '60s', notes: 'Saúde do ombro. RPE 8.' },
       ],
     },
     {
       day: 'Terça',
-      focus: 'Força — Lower Body',
-      warmup: '5 min bike + mobilidade de quadril e tornozelo',
-      duration: '55 min',
-      cooldown: 'Foam rolling + alongamento de quadríceps e isquiotibiais — 5 min',
+      focus: 'Lower Body — Compostos (Low Volume)',
+      warmup: '2 séries progressivas (50% e 75%)',
+      duration: '30-35 min',
+      cooldown: 'Foam rolling — 5 min',
       exercises: [
-        { name: 'Agachamento livre', sets: 4, reps: '6-8', rest: '120s' },
-        { name: 'Stiff com barra', sets: 3, reps: '10-12', rest: '90s' },
-        { name: 'Agachamento búlgaro', sets: 3, reps: '10 cada', rest: '75s' },
-        { name: 'Panturrilha em pé', sets: 4, reps: '15-20', rest: '60s' },
-        { name: 'Prancha abdominal', sets: 3, reps: '45s', rest: '30s' },
+        { name: hasKneeIssue ? 'Leg press 45°' : 'Agachamento livre', sets: 2, reps: '6-8', rest: '180s', notes: 'RPE 9.' },
+        { name: hasBackIssue ? 'Stiff com halteres' : 'Stiff com barra', sets: 2, reps: '8-10', rest: '120s', notes: 'RPE 9.' },
+        { name: 'Agachamento búlgaro', sets: 2, reps: '8-10 (cada)', rest: '90s', notes: 'RPE 9.' },
+        { name: 'Panturrilha em pé', sets: 3, reps: '10-15', rest: '90s', notes: 'RPE 10 (falha).' },
       ],
     },
     {
       day: 'Quarta',
-      focus: 'Condicionamento + Mobilidade',
-      warmup: '5 min corrida leve',
-      duration: '40 min',
-      cooldown: 'Respiração diafragmática — 5 min',
+      focus: 'Recuperação ativa + Mobilidade',
+      warmup: '-',
+      duration: '20-30 min',
+      cooldown: '-',
       exercises: [
-        { name: 'Circuito metabólico: KB Swing, Box Jump, Battle Ropes', sets: 4, reps: '40s on / 20s off', rest: '90s entre rounds' },
-        { name: 'Yoga flow', sets: 1, reps: '15 min', rest: '-' },
+        { name: 'Caminhada ou mobilidade articular', sets: 1, reps: '20-30 min', rest: '-', notes: 'Recuperação ativa. Low Volume = treinos curtos e intensos + descanso real.' },
       ],
     },
     {
       day: 'Quinta',
-      focus: 'Upper Body — Volume',
-      warmup: '5 min esteira + aquecimento articular',
-      duration: '55 min',
-      cooldown: 'Alongamento — 5 min',
+      focus: 'Upper Body B (Low Volume)',
+      warmup: '2 séries progressivas (50% e 75%)',
+      duration: '30-35 min',
+      cooldown: 'Alongamento — 3 min',
       exercises: [
-        { name: 'Barra fixa', sets: 4, reps: '6-10', rest: '90s' },
-        { name: 'Supino inclinado com halteres', sets: 3, reps: '10-12', rest: '75s' },
-        { name: 'Remada na polia baixa', sets: 3, reps: '10-12', rest: '75s' },
-        { name: 'Elevação lateral', sets: 3, reps: '15', rest: '60s' },
-        { name: 'Tríceps polia + Rosca martelo', sets: 3, reps: '12 cada', rest: '60s' },
+        { name: 'Barra fixa', sets: 2, reps: '6-10', rest: '120s', notes: 'RPE 9-10.' },
+        { name: 'Supino inclinado com halteres', sets: 2, reps: '8-10', rest: '120s', notes: 'RPE 9.' },
+        { name: 'Rosca direta + Tríceps polia (bi-set)', sets: 2, reps: '10-12 cada', rest: '90s', notes: 'RPE 10 (falha). Braços: poucas séries intensas.' },
+        { name: 'Elevação lateral', sets: 2, reps: '12-15', rest: '60s', notes: 'RPE 10 (falha).' },
       ],
     },
     {
       day: 'Sexta',
-      focus: 'Lower Body — Potência + Volume',
-      warmup: '5 min bike + agachamento corporal + saltos',
-      duration: '55 min',
-      cooldown: 'Foam rolling completo — 10 min',
+      focus: 'Lower Body B (Low Volume)',
+      warmup: '2 séries progressivas (50% e 75%)',
+      duration: '30-35 min',
+      cooldown: 'Foam rolling — 5 min',
       exercises: [
-        { name: 'Terra (deadlift)', sets: 4, reps: '5-6', rest: '150s', notes: hasBackIssue ? 'Usar trap bar' : '' },
-        { name: 'Leg press', sets: 3, reps: '12-15', rest: '75s' },
-        { name: 'Hip thrust', sets: 3, reps: '10-12', rest: '75s' },
-        { name: 'Cadeira extensora', sets: 3, reps: '12-15', rest: '60s' },
-        { name: 'Panturrilha sentado', sets: 4, reps: '15-20', rest: '60s' },
+        { name: hasBackIssue ? 'Leg press 45°' : 'Terra (deadlift)', sets: 2, reps: '5-6', rest: '180s', notes: 'RPE 9.' },
+        { name: 'Leg press 45°', sets: 2, reps: '10-12', rest: '120s', notes: 'RPE 9.' },
+        { name: 'Hip thrust', sets: 2, reps: '8-12', rest: '90s', notes: 'RPE 9-10.' },
+        { name: 'Panturrilha sentado', sets: 3, reps: '10-15', rest: '90s', notes: 'RPE 10 (falha).' },
       ],
     },
   ];
