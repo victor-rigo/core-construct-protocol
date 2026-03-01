@@ -585,6 +585,166 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
   };
 }
 
+// === ENTREPRENEUR DATA TABLES ===
+
+export interface FinancialDiagnosis {
+  metric: string;
+  value: string;
+  status: 'good' | 'warning' | 'critical';
+}
+
+export interface MarginScenario {
+  scenario: string;
+  newMargin: string;
+  monthlyProfit: string;
+  annualProfit: string;
+  gain: string;
+}
+
+export interface AcquisitionMetric {
+  channel: string;
+  estimatedCAC: string;
+  ltv: string;
+  ltvCacRatio: string;
+  status: 'good' | 'warning' | 'critical';
+}
+
+export interface FunnelStage {
+  stage: string;
+  conversionRate: string;
+  volumeNeeded: string;
+  benchmark: string;
+  status: 'good' | 'warning' | 'critical';
+}
+
+export interface ScaleAction {
+  action: string;
+  impact: 'alto' | 'médio' | 'baixo';
+  deadline: string;
+  priority: number;
+}
+
+export interface KPITarget {
+  kpi: string;
+  current: string;
+  optimized: string;
+  benchmark: string;
+  status: 'good' | 'warning' | 'critical';
+}
+
+export interface EntrepreneurData {
+  financialDiagnosis: FinancialDiagnosis[];
+  marginScenarios: MarginScenario[];
+  acquisitionMetrics: AcquisitionMetric[];
+  funnelStages: FunnelStage[];
+  scaleActions: ScaleAction[];
+  kpiTargets: KPITarget[];
+  summary: { revenue: number; profit: number; marginPercent: number; mainBottleneck: string };
+}
+
+function generateEntrepreneurData(profile: UserProfile): EntrepreneurData {
+  const revenue = parseFloat(profile.entrepreneur.monthlyRevenue) || 10000;
+  const marginPercent = parseFloat(profile.entrepreneur.margin) || 20;
+  const profit = revenue * (marginPercent / 100);
+  const opCost = revenue - profit;
+  const breakEven = opCost;
+  const model = profile.entrepreneur.businessModel || 'serviço';
+  const bottleneck = profile.entrepreneur.mainBottleneck || 'aquisição';
+  const channel = profile.entrepreneur.acquisitionChannel || 'tráfego pago';
+  const incomeGoal = parseFloat(profile.personal.incomeGoal) || revenue * 1.5;
+
+  const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`;
+
+  // Financial Diagnosis
+  const financialDiagnosis: FinancialDiagnosis[] = [
+    { metric: 'Faturamento mensal', value: fmt(revenue), status: revenue >= 50000 ? 'good' : revenue >= 15000 ? 'warning' : 'critical' },
+    { metric: 'Margem real (%)', value: `${marginPercent}%`, status: marginPercent >= 30 ? 'good' : marginPercent >= 15 ? 'warning' : 'critical' },
+    { metric: 'Lucro líquido mensal', value: fmt(profit), status: profit >= 10000 ? 'good' : profit >= 3000 ? 'warning' : 'critical' },
+    { metric: 'Custo operacional', value: fmt(opCost), status: opCost / revenue <= 0.6 ? 'good' : opCost / revenue <= 0.8 ? 'warning' : 'critical' },
+    { metric: 'Ponto de equilíbrio', value: fmt(breakEven), status: breakEven < revenue * 0.7 ? 'good' : 'warning' },
+    { metric: 'Lucro anual projetado', value: fmt(profit * 12), status: profit * 12 >= 120000 ? 'good' : 'warning' },
+  ];
+
+  // Margin Optimization Scenarios
+  const scenarios = [5, 10, 15, 20];
+  const marginScenarios: MarginScenario[] = scenarios.map(bump => {
+    const newMargin = marginPercent + bump;
+    const newProfit = revenue * (newMargin / 100);
+    const gainVal = newProfit - profit;
+    return {
+      scenario: `+${bump}% margem`,
+      newMargin: `${newMargin}%`,
+      monthlyProfit: fmt(newProfit),
+      annualProfit: fmt(newProfit * 12),
+      gain: `+${fmt(gainVal)}/mês`,
+    };
+  });
+
+  // Acquisition Metrics
+  const ticketMedio = model === 'saas' ? revenue / 50 : model === 'ecommerce' ? revenue / 200 : revenue / 15;
+  const ltvMultiplier = model === 'saas' ? 12 : model === 'ecommerce' ? 3 : 6;
+  const ltv = ticketMedio * ltvMultiplier;
+  const clientesNecessarios = Math.ceil(incomeGoal / ticketMedio);
+
+  const acquisitionMetrics: AcquisitionMetric[] = [
+    { channel: 'Orgânico (conteúdo)', estimatedCAC: fmt(ticketMedio * 0.1), ltv: fmt(ltv), ltvCacRatio: `${(ltv / (ticketMedio * 0.1)).toFixed(1)}x`, status: 'good' },
+    { channel: 'Tráfego pago', estimatedCAC: fmt(ticketMedio * 0.3), ltv: fmt(ltv), ltvCacRatio: `${(ltv / (ticketMedio * 0.3)).toFixed(1)}x`, status: ltv / (ticketMedio * 0.3) >= 3 ? 'good' : 'warning' },
+    { channel: 'Indicação / Referral', estimatedCAC: fmt(ticketMedio * 0.05), ltv: fmt(ltv * 1.2), ltvCacRatio: `${(ltv * 1.2 / (ticketMedio * 0.05)).toFixed(1)}x`, status: 'good' },
+    { channel: 'Outbound / Prospecção', estimatedCAC: fmt(ticketMedio * 0.25), ltv: fmt(ltv), ltvCacRatio: `${(ltv / (ticketMedio * 0.25)).toFixed(1)}x`, status: ltv / (ticketMedio * 0.25) >= 3 ? 'good' : 'warning' },
+  ];
+
+  // Funnel Stages
+  const funnelBenchmarks = model === 'saas'
+    ? { topo: 3, meio: 15, fundo: 25 }
+    : model === 'ecommerce'
+      ? { topo: 2, meio: 10, fundo: 20 }
+      : { topo: 5, meio: 20, fundo: 30 };
+
+  const monthlyClients = Math.ceil(revenue / ticketMedio);
+  const fundoNeeded = Math.ceil(monthlyClients / (funnelBenchmarks.fundo / 100));
+  const meioNeeded = Math.ceil(fundoNeeded / (funnelBenchmarks.meio / 100));
+  const topoNeeded = Math.ceil(meioNeeded / (funnelBenchmarks.topo / 100));
+
+  const funnelStages: FunnelStage[] = [
+    { stage: 'Topo — Alcance / Visitantes', conversionRate: `${funnelBenchmarks.topo}%`, volumeNeeded: topoNeeded.toLocaleString('pt-BR'), benchmark: `${funnelBenchmarks.topo}% (${model})`, status: 'warning' },
+    { stage: 'Meio — Leads / Interessados', conversionRate: `${funnelBenchmarks.meio}%`, volumeNeeded: meioNeeded.toLocaleString('pt-BR'), benchmark: `${funnelBenchmarks.meio}% (${model})`, status: 'warning' },
+    { stage: 'Fundo — Vendas / Clientes', conversionRate: `${funnelBenchmarks.fundo}%`, volumeNeeded: fundoNeeded.toLocaleString('pt-BR'), benchmark: `${funnelBenchmarks.fundo}% (${model})`, status: monthlyClients >= 10 ? 'good' : 'warning' },
+  ];
+
+  // Scale Actions
+  const scaleActions: ScaleAction[] = [
+    { action: bottleneck === 'aquisição' ? 'Implementar canal de tráfego pago validado' : 'Otimizar processo de entrega', impact: 'alto', deadline: '30 dias', priority: 1 },
+    { action: 'Documentar SOPs dos processos-chave', impact: 'alto', deadline: '15 dias', priority: 2 },
+    { action: marginPercent < 25 ? 'Renegociar custos e cortar gastos improdutivos' : 'Criar oferta premium de ticket maior', impact: 'alto', deadline: '30 dias', priority: 3 },
+    { action: profile.entrepreneur.hasTeam === 'sim' ? 'Implementar reuniões semanais de 15 min' : 'Contratar primeiro assistente para tarefas operacionais', impact: 'médio', deadline: '45 dias', priority: 4 },
+    { action: 'Criar sistema de indicação com incentivo', impact: 'médio', deadline: '30 dias', priority: 5 },
+    { action: 'Automatizar follow-up e nutrição de leads', impact: 'médio', deadline: '60 dias', priority: 6 },
+    { action: 'Lançar produto/serviço recorrente (MRR)', impact: 'alto', deadline: '90 dias', priority: 7 },
+    { action: 'Implementar NPS e pesquisa de satisfação', impact: 'baixo', deadline: '15 dias', priority: 8 },
+  ];
+
+  // KPI Targets
+  const kpiTargets: KPITarget[] = [
+    { kpi: 'Faturamento mensal', current: fmt(revenue), optimized: fmt(revenue * 1.5), benchmark: fmt(revenue * 2), status: revenue >= 50000 ? 'good' : 'warning' },
+    { kpi: 'Margem líquida', current: `${marginPercent}%`, optimized: `${Math.min(marginPercent + 10, 50)}%`, benchmark: model === 'saas' ? '70-80%' : model === 'serviço' ? '40-60%' : '25-35%', status: marginPercent >= 30 ? 'good' : 'warning' },
+    { kpi: 'CAC médio', current: fmt(ticketMedio * 0.3), optimized: fmt(ticketMedio * 0.15), benchmark: `< ${fmt(ticketMedio * 0.2)}`, status: 'warning' },
+    { kpi: 'LTV', current: fmt(ltv), optimized: fmt(ltv * 1.5), benchmark: fmt(ltv * 2), status: ltv / (ticketMedio * 0.3) >= 3 ? 'good' : 'critical' },
+    { kpi: 'LTV / CAC', current: `${(ltv / (ticketMedio * 0.3)).toFixed(1)}x`, optimized: `${(ltv * 1.5 / (ticketMedio * 0.15)).toFixed(1)}x`, benchmark: '> 3x', status: ltv / (ticketMedio * 0.3) >= 3 ? 'good' : 'critical' },
+    { kpi: 'Clientes/mês', current: `${monthlyClients}`, optimized: `${clientesNecessarios}`, benchmark: `${Math.ceil(clientesNecessarios * 1.2)}`, status: monthlyClients >= clientesNecessarios ? 'good' : 'warning' },
+    { kpi: 'Taxa de conversão do funil', current: `${funnelBenchmarks.fundo}%`, optimized: `${funnelBenchmarks.fundo + 10}%`, benchmark: `${funnelBenchmarks.fundo + 5}% (${model})`, status: 'warning' },
+  ];
+
+  return {
+    financialDiagnosis,
+    marginScenarios,
+    acquisitionMetrics,
+    funnelStages,
+    scaleActions,
+    kpiTargets,
+    summary: { revenue, profit, marginPercent, mainBottleneck: bottleneck },
+  };
+}
+
 // === ORIGINAL PROTOCOL ENGINE ===
 
 export function generateProtocol(profile: UserProfile) {
@@ -645,24 +805,7 @@ export function generateProtocol(profile: UserProfile) {
       : 'Freela especializado + infoproduto + prestação de serviço de alto valor',
   };
 
-  const entrepreneurProtocol = entrepreneur.enabled ? {
-    acquisition: `Canal principal: ${entrepreneur.acquisitionChannel || 'Tráfego pago'}. Diversificar com conteúdo orgânico e parcerias.`,
-    funnel: 'Topo: Conteúdo educativo → Meio: Lead magnet + Email → Fundo: Oferta direta + Prova social',
-    scale: [
-      'Automatizar processos operacionais',
-      'Contratar para funções não-core',
-      'Criar sistemas, não depender de pessoas',
-      'Documentar SOPs de tudo',
-    ],
-    kpis: ['CAC', 'LTV', 'Churn Rate', 'MRR', 'Margem líquida', 'NPS'],
-    leadership: [
-      'Delegar com clareza: resultado esperado + prazo + critérios',
-      'Feedback semanal estruturado',
-      'Reuniões objetivas de 15 min',
-      'Cultura de ownership na equipe',
-    ],
-    branding: 'Posicionamento de autoridade. Conteúdo que demonstra expertise. Consistência visual e verbal.',
-  } : null;
+  const entrepreneurProtocol = entrepreneur.enabled ? generateEntrepreneurData(profile) : null;
 
   const library = {
     books: [

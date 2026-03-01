@@ -2,8 +2,9 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
-import { generateProtocol } from '@/lib/protocolEngine';
-import { Target, BookOpen, TrendingUp, Briefcase, Clock, Calendar, DollarSign, Dumbbell, Apple, ChevronDown, ChevronUp } from 'lucide-react';
+import { generateProtocol, type EntrepreneurData } from '@/lib/protocolEngine';
+import { Target, BookOpen, TrendingUp, Briefcase, Clock, Calendar, DollarSign, Dumbbell, Apple, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 
 type Tab = 'daily' | 'weekly' | 'workout' | 'nutrition' | 'financial' | 'entrepreneur' | 'library';
 
@@ -287,34 +288,134 @@ const Dashboard = () => {
             </div>
           )}
 
-          {activeTab === 'entrepreneur' && protocol.entrepreneurProtocol && (
+          {activeTab === 'entrepreneur' && protocol.entrepreneurProtocol && (() => {
+            const ep = protocol.entrepreneurProtocol as EntrepreneurData;
+            const statusColor = (s: string) => s === 'good' ? 'text-green-500' : s === 'warning' ? 'text-yellow-500' : 'text-red-500';
+            const statusIcon = (s: string) => s === 'good' ? <CheckCircle className="w-3.5 h-3.5 text-green-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-yellow-500" />;
+            const impactColor = (i: string) => i === 'alto' ? 'bg-red-500/10 text-red-400 border-red-500/20' : i === 'médio' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' : 'bg-muted text-muted-foreground border-border';
+
+            return (
             <div className="space-y-8">
-              <div className="glass-card p-6">
-                <h3 className="font-display font-semibold text-sm tracking-wider uppercase mb-3">Aquisição de Clientes</h3>
-                <p className="text-sm text-muted-foreground">{protocol.entrepreneurProtocol.acquisition}</p>
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="glass-card p-5 text-center">
+                  <p className="text-xs tracking-[0.3em] text-muted-foreground uppercase mb-1">Faturamento</p>
+                  <p className="text-2xl font-display font-bold">R$ {ep.summary.revenue.toLocaleString('pt-BR')}</p>
+                </div>
+                <div className="glass-card p-5 text-center">
+                  <p className="text-xs tracking-[0.3em] text-muted-foreground uppercase mb-1">Lucro mensal</p>
+                  <p className={`text-2xl font-display font-bold ${ep.summary.profit >= 10000 ? 'text-green-500' : 'text-yellow-500'}`}>R$ {ep.summary.profit.toLocaleString('pt-BR')}</p>
+                </div>
+                <div className="glass-card p-5 text-center">
+                  <p className="text-xs tracking-[0.3em] text-muted-foreground uppercase mb-1">Gargalo principal</p>
+                  <p className="text-lg font-display font-semibold capitalize">{ep.summary.mainBottleneck}</p>
+                </div>
               </div>
-              <div className="glass-card p-6">
-                <h3 className="font-display font-semibold text-sm tracking-wider uppercase mb-3">Estrutura de Funil</h3>
-                <p className="text-sm text-muted-foreground">{protocol.entrepreneurProtocol.funnel}</p>
+
+              {/* Financial Diagnosis */}
+              <div className="glass-card overflow-hidden">
+                <div className="p-5 border-b border-border">
+                  <h3 className="font-display font-semibold text-sm tracking-wider uppercase flex items-center gap-2"><DollarSign className="w-4 h-4" /> Diagnóstico Financeiro</h3>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow><TableHead>Métrica</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Status</TableHead></TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ep.financialDiagnosis.map((d) => (
+                      <TableRow key={d.metric}><TableCell className="font-medium text-sm">{d.metric}</TableCell><TableCell className={`text-right text-sm font-semibold ${statusColor(d.status)}`}>{d.value}</TableCell><TableCell className="text-right">{statusIcon(d.status)}</TableCell></TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-              <div className="glass-card p-6">
-                <h3 className="font-display font-semibold text-sm tracking-wider uppercase mb-3">Escala</h3>
-                <ul className="space-y-2">{protocol.entrepreneurProtocol.scale.map((s) => <li key={s} className="text-sm text-muted-foreground flex items-center gap-2"><span className="w-1 h-1 bg-muted-foreground rounded-full" />{s}</li>)}</ul>
+
+              {/* Margin Optimization */}
+              <div className="glass-card overflow-hidden">
+                <div className="p-5 border-b border-border">
+                  <h3 className="font-display font-semibold text-sm tracking-wider uppercase flex items-center gap-2"><TrendingUp className="w-4 h-4" /> Cenários de Otimização de Margem</h3>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow><TableHead>Cenário</TableHead><TableHead className="text-right">Nova Margem</TableHead><TableHead className="text-right">Lucro/mês</TableHead><TableHead className="text-right">Lucro/ano</TableHead><TableHead className="text-right">Ganho</TableHead></TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ep.marginScenarios.map((s) => (
+                      <TableRow key={s.scenario}><TableCell className="font-medium text-sm">{s.scenario}</TableCell><TableCell className="text-right text-sm">{s.newMargin}</TableCell><TableCell className="text-right text-sm font-semibold">{s.monthlyProfit}</TableCell><TableCell className="text-right text-sm">{s.annualProfit}</TableCell><TableCell className="text-right text-sm text-green-500">{s.gain}</TableCell></TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-              <div className="glass-card p-6">
-                <h3 className="font-display font-semibold text-sm tracking-wider uppercase mb-3">KPIs</h3>
-                <div className="flex flex-wrap gap-2">{protocol.entrepreneurProtocol.kpis.map((k) => <span key={k} className="px-3 py-1 text-xs bg-secondary border border-border text-secondary-foreground">{k}</span>)}</div>
+
+              {/* Acquisition Metrics */}
+              <div className="glass-card overflow-hidden">
+                <div className="p-5 border-b border-border">
+                  <h3 className="font-display font-semibold text-sm tracking-wider uppercase">Métricas de Aquisição por Canal</h3>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow><TableHead>Canal</TableHead><TableHead className="text-right">CAC estimado</TableHead><TableHead className="text-right">LTV</TableHead><TableHead className="text-right">LTV/CAC</TableHead><TableHead className="text-right">Status</TableHead></TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ep.acquisitionMetrics.map((a) => (
+                      <TableRow key={a.channel}><TableCell className="font-medium text-sm">{a.channel}</TableCell><TableCell className="text-right text-sm">{a.estimatedCAC}</TableCell><TableCell className="text-right text-sm">{a.ltv}</TableCell><TableCell className={`text-right text-sm font-semibold ${statusColor(a.status)}`}>{a.ltvCacRatio}</TableCell><TableCell className="text-right">{statusIcon(a.status)}</TableCell></TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-              <div className="glass-card p-6">
-                <h3 className="font-display font-semibold text-sm tracking-wider uppercase mb-3">Liderança</h3>
-                <ul className="space-y-2">{protocol.entrepreneurProtocol.leadership.map((l) => <li key={l} className="text-sm text-muted-foreground flex items-center gap-2"><span className="w-1 h-1 bg-muted-foreground rounded-full" />{l}</li>)}</ul>
+
+              {/* Funnel */}
+              <div className="glass-card overflow-hidden">
+                <div className="p-5 border-b border-border">
+                  <h3 className="font-display font-semibold text-sm tracking-wider uppercase">Funil de Vendas — Volume Necessário</h3>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow><TableHead>Etapa</TableHead><TableHead className="text-right">Tx. Conversão</TableHead><TableHead className="text-right">Volume/mês</TableHead><TableHead className="text-right">Benchmark</TableHead><TableHead className="text-right">Status</TableHead></TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ep.funnelStages.map((f) => (
+                      <TableRow key={f.stage}><TableCell className="font-medium text-sm">{f.stage}</TableCell><TableCell className="text-right text-sm">{f.conversionRate}</TableCell><TableCell className="text-right text-sm font-semibold">{f.volumeNeeded}</TableCell><TableCell className="text-right text-sm text-muted-foreground">{f.benchmark}</TableCell><TableCell className="text-right">{statusIcon(f.status)}</TableCell></TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-              <div className="glass-card p-6">
-                <h3 className="font-display font-semibold text-sm tracking-wider uppercase mb-3">Branding</h3>
-                <p className="text-sm text-muted-foreground">{protocol.entrepreneurProtocol.branding}</p>
+
+              {/* Scale Actions */}
+              <div className="glass-card overflow-hidden">
+                <div className="p-5 border-b border-border">
+                  <h3 className="font-display font-semibold text-sm tracking-wider uppercase">Plano de Escala — Ações Priorizadas</h3>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow><TableHead className="w-8">#</TableHead><TableHead>Ação</TableHead><TableHead className="text-center">Impacto</TableHead><TableHead className="text-right">Prazo</TableHead></TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ep.scaleActions.map((a) => (
+                      <TableRow key={a.priority}><TableCell className="text-sm text-muted-foreground">{a.priority}</TableCell><TableCell className="font-medium text-sm">{a.action}</TableCell><TableCell className="text-center"><span className={`px-2 py-0.5 text-xs border rounded ${impactColor(a.impact)}`}>{a.impact}</span></TableCell><TableCell className="text-right text-sm text-muted-foreground">{a.deadline}</TableCell></TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* KPI Targets */}
+              <div className="glass-card overflow-hidden">
+                <div className="p-5 border-b border-border">
+                  <h3 className="font-display font-semibold text-sm tracking-wider uppercase">KPIs — Atual vs. Meta vs. Benchmark</h3>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow><TableHead>KPI</TableHead><TableHead className="text-right">Atual</TableHead><TableHead className="text-right">Meta otimizada</TableHead><TableHead className="text-right">Benchmark</TableHead><TableHead className="text-right">Status</TableHead></TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ep.kpiTargets.map((k) => (
+                      <TableRow key={k.kpi}><TableCell className="font-medium text-sm">{k.kpi}</TableCell><TableCell className={`text-right text-sm ${statusColor(k.status)}`}>{k.current}</TableCell><TableCell className="text-right text-sm font-semibold">{k.optimized}</TableCell><TableCell className="text-right text-sm text-muted-foreground">{k.benchmark}</TableCell><TableCell className="text-right">{statusIcon(k.status)}</TableCell></TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {activeTab === 'library' && (
             <div className="space-y-10">
