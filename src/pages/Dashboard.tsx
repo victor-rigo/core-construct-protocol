@@ -5,6 +5,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { generateProtocol, type EntrepreneurData } from '@/lib/protocolEngine';
 import { Target, BookOpen, TrendingUp, Briefcase, Clock, Calendar, DollarSign, Dumbbell, Apple, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 type Tab = 'daily' | 'weekly' | 'workout' | 'nutrition' | 'financial' | 'entrepreneur' | 'library';
 
@@ -263,8 +264,91 @@ const Dashboard = () => {
             </div>
           )}
 
-          {activeTab === 'financial' && (
+          {activeTab === 'financial' && (() => {
+            const expenseData = [
+              { name: 'Moradia', value: parseFloat(profile.financial.expenseHousing) || 0 },
+              { name: 'Alimentação', value: parseFloat(profile.financial.expenseFood) || 0 },
+              { name: 'Transporte', value: parseFloat(profile.financial.expenseTransport) || 0 },
+              { name: 'Saúde', value: parseFloat(profile.financial.expenseHealth) || 0 },
+              { name: 'Educação', value: parseFloat(profile.financial.expenseEducation) || 0 },
+              { name: 'Lazer', value: parseFloat(profile.financial.expenseLeisure) || 0 },
+              { name: 'Assinaturas', value: parseFloat(profile.financial.expenseSubscriptions) || 0 },
+              { name: 'Outros', value: parseFloat(profile.financial.expenseOther) || 0 },
+            ].filter(d => d.value > 0);
+            const totalExpenses = expenseData.reduce((sum, d) => sum + d.value, 0);
+            const income = parseFloat(profile.financial.monthlyIncome) || 0;
+            const savings = income - totalExpenses;
+            const improveMap: Record<string, string> = { moradia: 'Moradia', alimentacao: 'Alimentação', transporte: 'Transporte', saude: 'Saúde', educacao: 'Educação', lazer: 'Lazer', assinaturas: 'Assinaturas', outros: 'Outros' };
+            const toImprove = improveMap[profile.financial.expenseToImprove] || '';
+            const COLORS = ['hsl(var(--primary))', 'hsl(220, 70%, 55%)', 'hsl(160, 60%, 45%)', 'hsl(340, 65%, 50%)', 'hsl(45, 80%, 50%)', 'hsl(280, 60%, 55%)', 'hsl(200, 70%, 50%)', 'hsl(0, 0%, 60%)'];
+
+            return (
             <div className="space-y-8">
+              {/* Expense Pie Chart */}
+              {expenseData.length > 0 && (
+                <div className="glass-card p-6">
+                  <h3 className="font-display font-semibold text-sm tracking-wider uppercase mb-2 flex items-center gap-2"><DollarSign className="w-4 h-4" /> Controle de Gastos</h3>
+                  <p className="text-xs text-muted-foreground mb-4">Distribuição dos seus gastos mensais — Total: R$ {totalExpenses.toLocaleString('pt-BR')}{income > 0 ? ` | Sobra: R$ ${savings.toLocaleString('pt-BR')} (${Math.round((savings / income) * 100)}%)` : ''}</p>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={expenseData}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={100}
+                          innerRadius={50}
+                          dataKey="value"
+                          nameKey="name"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          labelLine={false}
+                          style={{ fontSize: '11px' }}
+                        >
+                          {expenseData.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="hsl(var(--background))" strokeWidth={2} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR')}`} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '4px', fontSize: '12px' }} />
+                        <Legend wrapperStyle={{ fontSize: '11px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {toImprove && (
+                    <div className="mt-4 p-3 bg-secondary/50 border border-border text-sm">
+                      <span className="font-semibold text-foreground">🎯 Meta de redução:</span>{' '}
+                      <span className="text-muted-foreground">Você quer reduzir <span className="text-foreground font-medium">{toImprove}</span> — atualmente R$ {expenseData.find(d => d.name === toImprove)?.value.toLocaleString('pt-BR') || '0'}/mês ({totalExpenses > 0 ? Math.round(((expenseData.find(d => d.name === toImprove)?.value || 0) / totalExpenses) * 100) : 0}% do total).</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Expense Breakdown Table */}
+              {expenseData.length > 0 && (
+                <div className="glass-card p-6">
+                  <h3 className="font-display font-semibold text-sm tracking-wider uppercase mb-4">Detalhamento dos Gastos</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Categoria</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                        <TableHead className="text-right">% da Renda</TableHead>
+                        <TableHead className="text-right">% dos Gastos</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {expenseData.sort((a, b) => b.value - a.value).map((d) => (
+                        <TableRow key={d.name} className={d.name === toImprove ? 'bg-destructive/5' : ''}>
+                          <TableCell className="font-medium">{d.name === toImprove ? `🎯 ${d.name}` : d.name}</TableCell>
+                          <TableCell className="text-right">R$ {d.value.toLocaleString('pt-BR')}</TableCell>
+                          <TableCell className="text-right">{income > 0 ? `${Math.round((d.value / income) * 100)}%` : '-'}</TableCell>
+                          <TableCell className="text-right">{Math.round((d.value / totalExpenses) * 100)}%</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
               <div className="glass-card p-6">
                 <h3 className="font-display font-semibold text-sm tracking-wider uppercase mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4" /> Estratégia de Renda</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{protocol.financialProtocol.incomeStrategy}</p>
@@ -286,7 +370,8 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">{protocol.financialProtocol.monetization}</p>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {activeTab === 'entrepreneur' && protocol.entrepreneurProtocol && (() => {
             const ep = protocol.entrepreneurProtocol as EntrepreneurData;

@@ -42,6 +42,15 @@ export interface FinancialProfile {
   debts: string;
   investments: string;
   marketingKnowledge: string;
+  expenseHousing: string;
+  expenseFood: string;
+  expenseTransport: string;
+  expenseHealth: string;
+  expenseEducation: string;
+  expenseLeisure: string;
+  expenseSubscriptions: string;
+  expenseOther: string;
+  expenseToImprove: string;
 }
 
 export interface EntrepreneurProfile {

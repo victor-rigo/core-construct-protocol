@@ -32,6 +32,9 @@ const Onboarding = () => {
   const [financial, setFinancial] = useState({
     monthlyIncome: '', incomeSource: '', employmentType: 'clt',
     debts: '', investments: '', marketingKnowledge: '',
+    expenseHousing: '', expenseFood: '', expenseTransport: '',
+    expenseHealth: '', expenseEducation: '', expenseLeisure: '',
+    expenseSubscriptions: '', expenseOther: '', expenseToImprove: '',
   });
 
   const [entrepreneur, setEntrepreneur] = useState({
@@ -129,17 +132,49 @@ const Onboarding = () => {
         );
       case 3:
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div><label className={labelClass}>Renda Mensal</label><input className={inputClass} placeholder="R$ 5.000" value={financial.monthlyIncome} onChange={(e) => setFinancial({ ...financial, monthlyIncome: e.target.value })} /></div>
-            <div><label className={labelClass}>Fonte de Renda</label><input className={inputClass} placeholder="Salário" value={financial.incomeSource} onChange={(e) => setFinancial({ ...financial, incomeSource: e.target.value })} /></div>
-            <div><label className={labelClass}>Tipo de Vínculo</label>
-              <select className={selectClass} value={financial.employmentType} onChange={(e) => setFinancial({ ...financial, employmentType: e.target.value })}>
-                <option value="clt">CLT</option><option value="autonomo">Autônomo</option><option value="empresario">Empresário</option>
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div><label className={labelClass}>Renda Mensal</label><input className={inputClass} placeholder="R$ 5.000" value={financial.monthlyIncome} onChange={(e) => setFinancial({ ...financial, monthlyIncome: e.target.value })} /></div>
+              <div><label className={labelClass}>Fonte de Renda</label><input className={inputClass} placeholder="Salário" value={financial.incomeSource} onChange={(e) => setFinancial({ ...financial, incomeSource: e.target.value })} /></div>
+              <div><label className={labelClass}>Tipo de Vínculo</label>
+                <select className={selectClass} value={financial.employmentType} onChange={(e) => setFinancial({ ...financial, employmentType: e.target.value })}>
+                  <option value="clt">CLT</option><option value="autonomo">Autônomo</option><option value="empresario">Empresário</option>
+                </select>
+              </div>
+              <div><label className={labelClass}>Dívidas</label><input className={inputClass} placeholder="R$ 0" value={financial.debts} onChange={(e) => setFinancial({ ...financial, debts: e.target.value })} /></div>
+              <div><label className={labelClass}>Investimentos</label><input className={inputClass} placeholder="R$ 10.000" value={financial.investments} onChange={(e) => setFinancial({ ...financial, investments: e.target.value })} /></div>
+              <div><label className={labelClass}>Conhecimento em Marketing</label><input className={inputClass} placeholder="Básico / Intermediário / Avançado" value={financial.marketingKnowledge} onChange={(e) => setFinancial({ ...financial, marketingKnowledge: e.target.value })} /></div>
+            </div>
+
+            <div>
+              <p className="text-xs tracking-[0.3em] text-muted-foreground uppercase mb-1">Controle de gastos</p>
+              <h3 className="font-display text-lg font-semibold mb-4">Quanto você gasta por mês em cada categoria?</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div><label className={labelClass}>Moradia (aluguel, condomínio, etc)</label><input className={inputClass} placeholder="R$ 1.500" value={financial.expenseHousing} onChange={(e) => setFinancial({ ...financial, expenseHousing: e.target.value })} /></div>
+                <div><label className={labelClass}>Alimentação</label><input className={inputClass} placeholder="R$ 800" value={financial.expenseFood} onChange={(e) => setFinancial({ ...financial, expenseFood: e.target.value })} /></div>
+                <div><label className={labelClass}>Transporte</label><input className={inputClass} placeholder="R$ 400" value={financial.expenseTransport} onChange={(e) => setFinancial({ ...financial, expenseTransport: e.target.value })} /></div>
+                <div><label className={labelClass}>Saúde (plano, academia, etc)</label><input className={inputClass} placeholder="R$ 300" value={financial.expenseHealth} onChange={(e) => setFinancial({ ...financial, expenseHealth: e.target.value })} /></div>
+                <div><label className={labelClass}>Educação (cursos, livros)</label><input className={inputClass} placeholder="R$ 200" value={financial.expenseEducation} onChange={(e) => setFinancial({ ...financial, expenseEducation: e.target.value })} /></div>
+                <div><label className={labelClass}>Lazer e entretenimento</label><input className={inputClass} placeholder="R$ 300" value={financial.expenseLeisure} onChange={(e) => setFinancial({ ...financial, expenseLeisure: e.target.value })} /></div>
+                <div><label className={labelClass}>Assinaturas (streaming, apps)</label><input className={inputClass} placeholder="R$ 150" value={financial.expenseSubscriptions} onChange={(e) => setFinancial({ ...financial, expenseSubscriptions: e.target.value })} /></div>
+                <div><label className={labelClass}>Outros gastos</label><input className={inputClass} placeholder="R$ 200" value={financial.expenseOther} onChange={(e) => setFinancial({ ...financial, expenseOther: e.target.value })} /></div>
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClass}>Qual categoria de gasto você mais quer reduzir?</label>
+              <select className={selectClass} value={financial.expenseToImprove} onChange={(e) => setFinancial({ ...financial, expenseToImprove: e.target.value })}>
+                <option value="">Selecione</option>
+                <option value="moradia">Moradia</option>
+                <option value="alimentacao">Alimentação</option>
+                <option value="transporte">Transporte</option>
+                <option value="saude">Saúde</option>
+                <option value="educacao">Educação</option>
+                <option value="lazer">Lazer</option>
+                <option value="assinaturas">Assinaturas</option>
+                <option value="outros">Outros</option>
               </select>
             </div>
-            <div><label className={labelClass}>Dívidas</label><input className={inputClass} placeholder="R$ 0" value={financial.debts} onChange={(e) => setFinancial({ ...financial, debts: e.target.value })} /></div>
-            <div><label className={labelClass}>Investimentos</label><input className={inputClass} placeholder="R$ 10.000" value={financial.investments} onChange={(e) => setFinancial({ ...financial, investments: e.target.value })} /></div>
-            <div><label className={labelClass}>Conhecimento em Marketing</label><input className={inputClass} placeholder="Básico / Intermediário / Avançado" value={financial.marketingKnowledge} onChange={(e) => setFinancial({ ...financial, marketingKnowledge: e.target.value })} /></div>
           </div>
         );
       case 4:
