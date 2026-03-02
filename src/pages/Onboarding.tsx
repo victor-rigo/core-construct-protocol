@@ -46,8 +46,8 @@ const Onboarding = () => {
   const handleComplete = () => {
     const profile: UserProfile = { personal, physical, mental, financial, entrepreneur };
     setProfile(profile);
-    setHasCompletedOnboarding(true);
-    navigate('/dashboard');
+    // Don't mark as completed yet - redirect to auth first
+    navigate('/auth');
   };
 
   const next = () => { if (step < steps.length - 1) setStep(step + 1); else handleComplete(); };

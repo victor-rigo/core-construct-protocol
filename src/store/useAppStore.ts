@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface PersonalProfile {
   age: string;
@@ -88,6 +89,7 @@ interface AppState {
   addGoal: (goal: Goal) => void;
   toggleGoal: (id: string) => void;
   removeGoal: (id: string) => void;
+  saveProfileToDB: (userId: string) => Promise<void>;
 }
 
 const defaultGoals: Goal[] = [
@@ -115,4 +117,12 @@ export const useAppStore = create<AppState>((set) => ({
       goals: state.goals.map((g) => (g.id === id ? { ...g, completed: !g.completed } : g)),
     })),
   removeGoal: (id) => set((state) => ({ goals: state.goals.filter((g) => g.id !== id) })),
+  saveProfileToDB: async (userId: string) => {
+    const state = useAppStore.getState();
+    if (!state.profile) return;
+    await supabase.from('profiles').update({
+      profile_data: state.profile as any,
+      has_completed_onboarding: true,
+    }).eq('id', userId);
+  },
 }));
