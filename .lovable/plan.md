@@ -1,32 +1,69 @@
 
 
-## Plano: Tabelas de Dados e Otimizações no Modo Empresário
+## Plano: Autenticação com Supabase + Persistência de Dados
 
-### Contexto
-A aba "Empresário" no Dashboard atualmente exibe apenas textos genéricos (aquisição, funil, escala, KPIs como badges). O objetivo é gerar **tabelas com dados reais calculados a partir do formulário** — métricas atuais vs. otimizadas, diagnósticos e planos de ação concretos.
+### Visão Geral
+Criar sistema de login/signup após o onboarding, salvar o perfil do usuário no Supabase e proteger o dashboard para usuários autenticados.
 
-### Alterações
+### 1. Criar tabelas no Supabase (migração SQL)
 
-#### 1. Expandir o Protocol Engine (`src/lib/protocolEngine.ts`)
-Refatorar `entrepreneurProtocol` para gerar dados tabulares baseados no formulário:
+**Tabela `profiles`:**
+- `id` (UUID, FK → auth.users, PK)
+- `email` (text)
+- `created_at` (timestamptz)
+- `updated_at` (timestamptz)
+- `profile_data` (JSONB — armazena todo o UserProfile do onboarding)
+- `has_completed_onboarding` (boolean, default false)
 
-- **Tabela de Diagnóstico Financeiro**: faturamento atual, margem real (R$), custo operacional estimado, ponto de equilíbrio — tudo calculado a partir de `monthlyRevenue` e `margin`.
-- **Tabela de Otimização de Margem**: cenários de melhoria (5%, 10%, 20%) com projeção de lucro líquido mensal e anual.
-- **Tabela de Métricas de Aquisição**: CAC estimado por canal (orgânico, tráfego pago, indicação), LTV projetado, relação LTV/CAC, e meta de clientes/mês para atingir a meta de renda.
-- **Tabela de Funil de Vendas**: etapas (topo, meio, fundo) com taxas de conversão benchmark por modelo de negócio e volume necessário em cada etapa.
-- **Tabela de Plano de Escala**: ações priorizadas com impacto estimado (alto/médio/baixo), prazo sugerido e status.
-- **Tabela de KPIs com metas**: métrica atual (inferida do formulário) vs. meta otimizada vs. benchmark do setor.
+**RLS Policies:**
+- SELECT: usuário pode ler apenas seu próprio perfil
+- INSERT: usuário autenticado pode inserir seu próprio perfil
+- UPDATE: usuário pode atualizar apenas seu próprio perfil
 
-Todas as interfaces tipadas (ex: `MarginScenario`, `AcquisitionMetric`, `FunnelStage`, `ScaleAction`, `KPITarget`).
+**Trigger:** auto-criar registro em `profiles` quando um novo usuário se registra via `auth.users`
 
-#### 2. Atualizar o Dashboard (`src/pages/Dashboard.tsx`)
-Substituir a aba "Empresário" atual por seções com tabelas usando os componentes `Table` já existentes (`src/components/ui/table.tsx`):
+### 2. Criar página de Auth (`src/pages/Auth.tsx`)
+- Página com formulário de **login** e **signup** (toggle entre os dois)
+- Usa `supabase.auth.signUp()` e `supabase.auth.signInWithPassword()`
+- Design consistente com o estilo KOR (font-display, tracking, minimalista)
+- Redirecionamento: após login → dashboard (se onboarding completo) ou onboarding
 
-- Cada seção com header descritivo + tabela de dados
-- Células com formatação condicional (verde para métricas boas, vermelho para gargalos)
-- Cards de resumo no topo (faturamento, margem, gargalo principal)
-- Manter o design premium minimalista (glass-card, font-display, tracking)
+### 3. Criar página de Reset de Senha (`src/pages/ResetPassword.tsx`)
+- Formulário para definir nova senha após clicar no link de recuperação
+- Chama `supabase.auth.updateUser({ password })`
 
-### Resultado Esperado
-O empresário verá seus números reais processados em tabelas acionáveis, com cenários de otimização calculados a partir do que informou no formulário — não apenas texto genérico.
+### 4. Fluxo do Onboarding atualizado (`src/pages/Onboarding.tsx`)
+- Após completar o formulário, redirecionar para `/auth` (signup/login)
+- Após autenticação bem-sucedida, salvar `profile_data` na tabela `profiles` e redirecionar para `/dashboard`
+
+### 5. Proteger rotas (`src/App.tsx`)
+- Criar componente `ProtectedRoute` que verifica sessão Supabase
+- Dashboard e Goals ficam protegidos
+- Se não autenticado → redireciona para `/auth`
+
+### 6. Hook de autenticação (`src/hooks/useAuth.ts`)
+- Hook com `onAuthStateChange` + `getSession`
+- Expõe `user`, `session`, `loading`, `signOut`
+- Carrega `profile_data` do Supabase ao fazer login e popula o Zustand store
+
+### 7. Atualizar store (`src/store/useAppStore.ts`)
+- Adicionar ação `loadProfileFromDB` para hidratar o estado com dados do Supabase
+- Adicionar ação `saveProfileToDB` para persistir no Supabase
+
+### 8. Atualizar rotas (`src/App.tsx`)
+- `/auth` → página de login/signup
+- `/reset-password` → página de redefinição de senha
+- Dashboard e Goals protegidos com `ProtectedRoute`
+
+### Fluxo do Usuário
+```text
+Landing → Onboarding (formulário) → Auth (signup/login) → Dashboard
+                                                              ↑
+Landing → Auth (login) ──────────────────────────────────────┘
+```
+
+### Detalhes Técnicos
+- Profile data armazenado como JSONB para flexibilidade (não precisa de uma coluna por campo)
+- `onAuthStateChange` configurado ANTES de `getSession()` conforme boas práticas do Supabase
+- Redirect URL configurado para `window.location.origin`
 
