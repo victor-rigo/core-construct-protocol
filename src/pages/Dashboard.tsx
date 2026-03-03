@@ -2,8 +2,9 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
+import { useAuth } from '@/hooks/useAuth';
 import { generateProtocol, type EntrepreneurData } from '@/lib/protocolEngine';
-import { Target, BookOpen, TrendingUp, Briefcase, Clock, Calendar, DollarSign, Dumbbell, Apple, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Target, BookOpen, TrendingUp, Briefcase, Clock, Calendar, DollarSign, Dumbbell, Apple, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, LogOut } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
@@ -12,6 +13,7 @@ type Tab = 'daily' | 'weekly' | 'workout' | 'nutrition' | 'financial' | 'entrepr
 const Dashboard = () => {
   const navigate = useNavigate();
   const { profile } = useAppStore();
+  const { signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('daily');
   const [expandedWorkout, setExpandedWorkout] = useState<number | null>(0);
   const [expandedMeal, setExpandedMeal] = useState<number | null>(0);
@@ -47,6 +49,9 @@ const Dashboard = () => {
           </button>
           <button onClick={() => navigate('/onboarding')} className="text-xs tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors font-display">
             Recalibrar
+          </button>
+          <button onClick={signOut} className="flex items-center gap-2 text-xs tracking-widest uppercase text-muted-foreground hover:text-destructive transition-colors font-display">
+            <LogOut className="w-4 h-4" /> Sair
           </button>
         </div>
       </div>
