@@ -20,7 +20,7 @@ const Auth = () => {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate(hasCompletedOnboarding ? '/dashboard' : '/onboarding');
+        navigate(hasCompletedOnboarding ? '/protocol' : '/onboarding');
       }
     });
   }, [navigate, hasCompletedOnboarding]);
@@ -45,7 +45,7 @@ const Auth = () => {
             .eq('id', user.id)
             .single();
 
-          navigate(profileData?.has_completed_onboarding ? '/dashboard' : '/onboarding');
+          navigate(profileData?.has_completed_onboarding ? '/protocol' : '/onboarding');
         }
       } else {
         const { error } = await supabase.auth.signUp({
@@ -62,7 +62,7 @@ const Auth = () => {
             profile_data: profile as any,
             has_completed_onboarding: true,
           }).eq('id', user.id);
-          navigate('/dashboard');
+          navigate('/protocol');
         } else {
           setMessage('Verifique seu email para confirmar a conta.');
         }

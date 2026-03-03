@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import GoalsPage from "./pages/Goals";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import Protocol from "./pages/Protocol";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/protocol" element={<Protocol />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/goals" element={<ProtectedRoute><GoalsPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
