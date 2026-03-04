@@ -14,6 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
+      form_responses: {
+        Row: {
+          created_at: string
+          disciplina: number | null
+          faturamento: number | null
+          frequencia_treino: number | null
+          horario_fim: string | null
+          horario_inicio: string | null
+          horas_redes_sociais: number | null
+          id: string
+          idade: number | null
+          margem: number | null
+          meta_renda: number | null
+          modo_empresario: boolean | null
+          nivel_foco: number | null
+          objetivo_fisico: string | null
+          profissao: string | null
+          renda_atual: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          disciplina?: number | null
+          faturamento?: number | null
+          frequencia_treino?: number | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          horas_redes_sociais?: number | null
+          id?: string
+          idade?: number | null
+          margem?: number | null
+          meta_renda?: number | null
+          modo_empresario?: boolean | null
+          nivel_foco?: number | null
+          objetivo_fisico?: string | null
+          profissao?: string | null
+          renda_atual?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          disciplina?: number | null
+          faturamento?: number | null
+          frequencia_treino?: number | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          horas_redes_sociais?: number | null
+          id?: string
+          idade?: number | null
+          margem?: number | null
+          meta_renda?: number | null
+          modo_empresario?: boolean | null
+          nivel_foco?: number | null
+          objetivo_fisico?: string | null
+          profissao?: string | null
+          renda_atual?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      generated_protocols: {
+        Row: {
+          created_at: string
+          id: string
+          response_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          response_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          response_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_protocols_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "form_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -40,6 +129,98 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      protocol_blocks: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          descricao: string
+          id: string
+          prioridade: number
+          titulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria: string
+          descricao: string
+          id?: string
+          prioridade?: number
+          titulo: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          descricao?: string
+          id?: string
+          prioridade?: number
+          titulo?: string
+        }
+        Relationships: []
+      }
+      protocol_items: {
+        Row: {
+          block_id: string
+          id: string
+          protocol_id: string
+        }
+        Insert: {
+          block_id: string
+          id?: string
+          protocol_id: string
+        }
+        Update: {
+          block_id?: string
+          id?: string
+          protocol_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_items_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: false
+            referencedRelation: "protocol_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_items_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "generated_protocols"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocol_rules: {
+        Row: {
+          block_id: string
+          campo: string
+          id: string
+          operador: string
+          valor: string
+        }
+        Insert: {
+          block_id: string
+          campo: string
+          id?: string
+          operador: string
+          valor: string
+        }
+        Update: {
+          block_id?: string
+          campo?: string
+          id?: string
+          operador?: string
+          valor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_rules_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: false
+            referencedRelation: "protocol_blocks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

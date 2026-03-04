@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAppStore } from '@/store/useAppStore';
+import { mapProfileToFormResponse, saveFormResponse, generateRuleBasedProtocol } from '@/lib/protocolRuleEngine';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -55,13 +56,21 @@ const Auth = () => {
         });
         if (error) throw error;
 
-        // If profile data exists from onboarding, save it
+        // If profile data exists from onboarding, save it and generate protocol
         const { data: { user } } = await supabase.auth.getUser();
         if (user && profile) {
           await supabase.from('profiles').update({
             profile_data: profile as any,
             has_completed_onboarding: true,
           }).eq('id', user.id);
+
+          // Save to form_responses and generate rule-based protocol
+          const mapped = mapProfileToFormResponse(profile);
+          const responseId = await saveFormResponse(user.id, mapped);
+          if (responseId) {
+            await generateRuleBasedProtocol(user.id, responseId, mapped);
+          }
+
           navigate('/protocol');
         } else {
           setMessage('Verifique seu email para confirmar a conta.');
