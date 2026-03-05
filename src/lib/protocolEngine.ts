@@ -22,10 +22,20 @@ interface WorkoutDay {
   duration: string;
 }
 
+interface FoodItem {
+  item: string;
+  quantity: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  alternative?: string;
+}
+
 interface Meal {
   name: string;
   time: string;
-  foods: { item: string; quantity: string; calories: number; protein: number; carbs: number; fat: number }[];
+  foods: FoodItem[];
   totalCalories: number;
   totalProtein: number;
 }
@@ -342,6 +352,27 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
   const age = parseInt(profile.personal.age) || 25;
   const objective = profile.physical.objective;
   const bodyFat = parseFloat(profile.physical.bodyFat) || 18;
+  const nutrition = profile.nutrition || {} as any;
+
+  // Parse nutrition preferences
+  const allergies = (nutrition.allergies || '').toLowerCase();
+  const disliked = (nutrition.dislikedFoods || '').toLowerCase();
+  const canAffordSupplements = nutrition.canAffordSupplements === 'sim';
+  const maybeSupplements = nutrition.canAffordSupplements === 'depende';
+  const mealsPerDay = parseInt(nutrition.mealsPerDay) || 4;
+  const waterIntakeLabel = nutrition.dailyWaterIntake || '';
+  const alcohol = nutrition.alcoholConsumption || 'não';
+  const smoking = nutrition.smoking || 'não';
+
+  // Helper to check if a food is forbidden
+  const isForbidden = (food: string): boolean => {
+    const lower = food.toLowerCase();
+    const forbidden = [allergies, disliked].filter(Boolean);
+    return forbidden.some(list => {
+      const items = list.split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+      return items.some(item => lower.includes(item) || item.includes(lower.split(' ')[0]));
+    });
+  };
 
   // Mifflin-St Jeor BMR estimation
   const bmr = 10 * weight + 6.25 * height - 5 * age + 5;
@@ -354,13 +385,13 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
   let goal: string;
 
   if (objective === 'hipertrofia') {
-    dailyCalories = tdee + 350; // Lean bulk — Ref: Iraki et al., 2019
-    proteinPerKg = 2.0; // ISSN: 1.6-2.2g/kg
+    dailyCalories = tdee + 350;
+    proteinPerKg = 2.0;
     fatPerKg = 1.0;
     goal = 'Superávit calórico controlado (+350 kcal) para ganho muscular com mínimo ganho de gordura';
   } else if (objective === 'definição') {
-    dailyCalories = tdee - 500; // Moderate deficit — Helms et al., 2014
-    proteinPerKg = 2.3; // Higher protein in deficit to preserve muscle
+    dailyCalories = tdee - 500;
+    proteinPerKg = 2.3;
     fatPerKg = 0.8;
     goal = 'Déficit calórico moderado (-500 kcal) preservando massa muscular';
   } else {
@@ -376,211 +407,213 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
   const carbs = Math.round(carbCalories / 4);
   const schedule = getScheduleSlots(profile);
 
-  const meals: Meal[] = objective === 'hipertrofia' ? [
-    {
-      name: 'Refeição 1 — Pré-treino',
-      time: schedule.preTrain,
-      foods: [
-        { item: 'Aveia em flocos', quantity: '80g', calories: 300, protein: 10, carbs: 54, fat: 6 },
-        { item: 'Whey protein isolado', quantity: '30g (1 scoop)', calories: 120, protein: 25, carbs: 2, fat: 1 },
-        { item: 'Banana', quantity: '1 unidade', calories: 105, protein: 1, carbs: 27, fat: 0 },
-        { item: 'Pasta de amendoim', quantity: '15g', calories: 90, protein: 4, carbs: 3, fat: 8 },
-      ],
-      totalCalories: 615,
-      totalProtein: 40,
-    },
-    {
-      name: 'Refeição 2 — Pós-treino',
-      time: schedule.postTrain,
-      foods: [
-        { item: 'Peito de frango grelhado', quantity: '200g', calories: 330, protein: 62, carbs: 0, fat: 7 },
-        { item: 'Arroz branco', quantity: '150g (cozido)', calories: 195, protein: 4, carbs: 43, fat: 0 },
-        { item: 'Batata doce', quantity: '150g', calories: 130, protein: 2, carbs: 30, fat: 0 },
-        { item: 'Brócolis', quantity: '100g', calories: 35, protein: 3, carbs: 7, fat: 0 },
-      ],
-      totalCalories: 690,
-      totalProtein: 71,
-    },
-    {
-      name: 'Refeição 3 — Almoço',
-      time: schedule.lunch,
-      foods: [
-        { item: 'Patinho moído (carne vermelha magra)', quantity: '180g', calories: 280, protein: 45, carbs: 0, fat: 10 },
-        { item: 'Arroz integral', quantity: '120g (cozido)', calories: 140, protein: 3, carbs: 30, fat: 1 },
-        { item: 'Feijão preto', quantity: '100g (cozido)', calories: 130, protein: 9, carbs: 23, fat: 0 },
-        { item: 'Salada verde (alface, tomate, pepino)', quantity: 'à vontade', calories: 30, protein: 2, carbs: 5, fat: 0 },
-        { item: 'Azeite extra virgem', quantity: '10ml', calories: 88, protein: 0, carbs: 0, fat: 10 },
-      ],
-      totalCalories: 668,
-      totalProtein: 59,
-    },
-    {
-      name: 'Refeição 4 — Lanche da tarde',
-      time: schedule.snack,
-      foods: [
-        { item: 'Ovos inteiros', quantity: '3 unidades', calories: 210, protein: 18, carbs: 0, fat: 15 },
-        { item: 'Pão integral', quantity: '2 fatias', calories: 140, protein: 6, carbs: 24, fat: 2 },
-        { item: 'Queijo cottage', quantity: '50g', calories: 50, protein: 6, carbs: 2, fat: 2 },
-      ],
-      totalCalories: 400,
-      totalProtein: 30,
-    },
-    {
-      name: 'Refeição 5 — Jantar',
-      time: schedule.dinner,
-      foods: [
-        { item: 'Salmão grelhado', quantity: '180g', calories: 370, protein: 40, carbs: 0, fat: 22 },
-        { item: 'Quinoa', quantity: '100g (cozida)', calories: 120, protein: 4, carbs: 21, fat: 2 },
-        { item: 'Aspargos', quantity: '100g', calories: 20, protein: 2, carbs: 4, fat: 0 },
-        { item: 'Abacate', quantity: '50g', calories: 80, protein: 1, carbs: 4, fat: 7 },
-      ],
-      totalCalories: 590,
-      totalProtein: 47,
-    },
-    {
-      name: 'Refeição 6 — Ceia (pré-sono)',
-      time: schedule.ceia,
-      foods: [
-        { item: 'Caseína ou iogurte grego natural', quantity: '200g', calories: 130, protein: 20, carbs: 6, fat: 3 },
-        { item: 'Castanha-do-pará', quantity: '3 unidades', calories: 60, protein: 1, carbs: 1, fat: 6 },
-      ],
-      totalCalories: 190,
-      totalProtein: 21,
-    },
-  ] : objective === 'definição' ? [
-    {
-      name: 'Refeição 1 — Desjejum',
-      time: schedule.meal1,
-      foods: [
-        { item: 'Ovos inteiros', quantity: '3 unidades', calories: 210, protein: 18, carbs: 0, fat: 15 },
-        { item: 'Claras de ovo', quantity: '3 unidades', calories: 51, protein: 11, carbs: 0, fat: 0 },
-        { item: 'Espinafre refogado', quantity: '100g', calories: 23, protein: 3, carbs: 4, fat: 0 },
-        { item: 'Pão integral', quantity: '1 fatia', calories: 70, protein: 3, carbs: 12, fat: 1 },
-      ],
-      totalCalories: 354,
-      totalProtein: 35,
-    },
-    {
-      name: 'Refeição 2 — Almoço',
-      time: schedule.lunch,
-      foods: [
-        { item: 'Peito de frango grelhado', quantity: '200g', calories: 330, protein: 62, carbs: 0, fat: 7 },
-        { item: 'Arroz integral', quantity: '80g (cozido)', calories: 95, protein: 2, carbs: 20, fat: 1 },
-        { item: 'Salada volumosa (folhas, tomate, pepino, cenoura)', quantity: 'à vontade', calories: 50, protein: 3, carbs: 10, fat: 0 },
-        { item: 'Azeite extra virgem', quantity: '5ml', calories: 44, protein: 0, carbs: 0, fat: 5 },
-      ],
-      totalCalories: 519,
-      totalProtein: 67,
-    },
-    {
-      name: 'Refeição 3 — Lanche pré-treino',
-      time: schedule.preTrain,
-      foods: [
-        { item: 'Whey protein isolado', quantity: '30g', calories: 120, protein: 25, carbs: 2, fat: 1 },
-        { item: 'Banana', quantity: '1 unidade', calories: 105, protein: 1, carbs: 27, fat: 0 },
-      ],
-      totalCalories: 225,
-      totalProtein: 26,
-    },
-    {
-      name: 'Refeição 4 — Jantar (pós-treino)',
-      time: schedule.postTrain,
-      foods: [
-        { item: 'Tilápia grelhada', quantity: '200g', calories: 200, protein: 42, carbs: 0, fat: 3 },
-        { item: 'Batata doce', quantity: '120g', calories: 104, protein: 2, carbs: 24, fat: 0 },
-        { item: 'Brócolis no vapor', quantity: '150g', calories: 53, protein: 5, carbs: 10, fat: 0 },
-      ],
-      totalCalories: 357,
-      totalProtein: 49,
-    },
-    {
-      name: 'Refeição 5 — Ceia',
-      time: schedule.ceia,
-      foods: [
-        { item: 'Caseína ou iogurte grego 0%', quantity: '200g', calories: 100, protein: 18, carbs: 6, fat: 0 },
-        { item: 'Semente de chia', quantity: '10g', calories: 49, protein: 2, carbs: 4, fat: 3 },
-      ],
-      totalCalories: 149,
-      totalProtein: 20,
-    },
-  ] : [
-    // Performance / Saúde
-    {
-      name: 'Refeição 1 — Desjejum',
-      time: schedule.meal1,
-      foods: [
-        { item: 'Aveia em flocos', quantity: '60g', calories: 225, protein: 8, carbs: 41, fat: 4 },
-        { item: 'Whey protein', quantity: '30g', calories: 120, protein: 25, carbs: 2, fat: 1 },
-        { item: 'Frutas vermelhas (mix)', quantity: '100g', calories: 50, protein: 1, carbs: 12, fat: 0 },
-        { item: 'Castanhas mistas', quantity: '20g', calories: 120, protein: 3, carbs: 4, fat: 10 },
-      ],
-      totalCalories: 515,
-      totalProtein: 37,
-    },
-    {
-      name: 'Refeição 2 — Almoço',
-      time: schedule.lunch,
-      foods: [
-        { item: 'Frango ou peixe', quantity: '180g', calories: 300, protein: 50, carbs: 0, fat: 8 },
-        { item: 'Arroz + Feijão', quantity: '150g + 80g', calories: 280, protein: 10, carbs: 50, fat: 2 },
-        { item: 'Legumes variados', quantity: '150g', calories: 60, protein: 4, carbs: 12, fat: 0 },
-        { item: 'Azeite', quantity: '10ml', calories: 88, protein: 0, carbs: 0, fat: 10 },
-      ],
-      totalCalories: 728,
-      totalProtein: 64,
-    },
-    {
-      name: 'Refeição 3 — Lanche',
-      time: schedule.snack,
-      foods: [
-        { item: 'Ovos (inteiros)', quantity: '2 unidades', calories: 140, protein: 12, carbs: 0, fat: 10 },
-        { item: 'Abacate', quantity: '80g', calories: 128, protein: 2, carbs: 7, fat: 12 },
-        { item: 'Pão integral', quantity: '1 fatia', calories: 70, protein: 3, carbs: 12, fat: 1 },
-      ],
-      totalCalories: 338,
-      totalProtein: 17,
-    },
-    {
-      name: 'Refeição 4 — Jantar',
-      time: schedule.dinner,
-      foods: [
-        { item: 'Carne vermelha magra', quantity: '180g', calories: 280, protein: 45, carbs: 0, fat: 10 },
-        { item: 'Batata doce ou mandioca', quantity: '150g', calories: 130, protein: 2, carbs: 30, fat: 0 },
-        { item: 'Salada verde', quantity: 'à vontade', calories: 30, protein: 2, carbs: 5, fat: 0 },
-      ],
-      totalCalories: 440,
-      totalProtein: 49,
-    },
-    {
-      name: 'Refeição 5 — Ceia',
-      time: schedule.ceia,
-      foods: [
-        { item: 'Iogurte grego natural', quantity: '170g', calories: 100, protein: 17, carbs: 6, fat: 0 },
-        { item: 'Castanha-do-pará', quantity: '2 unidades', calories: 40, protein: 1, carbs: 1, fat: 4 },
-      ],
-      totalCalories: 140,
-      totalProtein: 18,
-    },
+  // === FOOD DATABASE WITH ALTERNATIVES ===
+  type FoodEntry = { item: string; alt: string; quantity: string; calories: number; protein: number; carbs: number; fat: number };
+
+  const proteinSources: FoodEntry[] = [
+    { item: 'Peito de frango grelhado', alt: 'Carne moída magra', quantity: '200g', calories: 330, protein: 62, carbs: 0, fat: 7 },
+    { item: 'Patinho moído', alt: 'Peito de peru', quantity: '180g', calories: 280, protein: 45, carbs: 0, fat: 10 },
+    { item: 'Tilápia grelhada', alt: 'Frango desfiado', quantity: '200g', calories: 200, protein: 42, carbs: 0, fat: 3 },
+    { item: 'Salmão grelhado', alt: 'Sardinha em lata (escorrida)', quantity: '180g', calories: 370, protein: 40, carbs: 0, fat: 22 },
+    { item: 'Ovos inteiros', alt: 'Peito de frango em cubos', quantity: '3 unidades', calories: 210, protein: 18, carbs: 0, fat: 15 },
   ];
 
-  const supplements = [
-    { name: 'Creatina monohidratada', dosage: '5g/dia', timing: 'Qualquer horário, com água', reference: 'ISSN Position Stand — Kreider et al., 2017' },
-    { name: 'Whey Protein Isolado', dosage: '30g pós-treino', timing: 'Dentro de 2h após treino', reference: 'Schoenfeld & Aragon, 2018 — meta-analysis' },
-    { name: 'Vitamina D3', dosage: '2000-4000 UI/dia', timing: 'Com refeição gordurosa', reference: 'Endocrine Society Guidelines' },
-    { name: 'Ômega 3 (EPA/DHA)', dosage: '2-3g/dia', timing: 'Com refeições', reference: 'AHA Recommendations' },
-    { name: 'Magnésio bisglicinato', dosage: '200-400mg', timing: 'Antes de dormir', reference: 'Ref: Andrew Huberman — sono e recuperação' },
+  const carbSources: FoodEntry[] = [
+    { item: 'Arroz branco', alt: 'Macarrão integral', quantity: '150g (cozido)', calories: 195, protein: 4, carbs: 43, fat: 0 },
+    { item: 'Batata doce', alt: 'Mandioca cozida', quantity: '150g', calories: 130, protein: 2, carbs: 30, fat: 0 },
+    { item: 'Arroz integral', alt: 'Arroz branco', quantity: '120g (cozido)', calories: 140, protein: 3, carbs: 30, fat: 1 },
+    { item: 'Aveia em flocos', alt: 'Tapioca', quantity: '80g', calories: 300, protein: 10, carbs: 54, fat: 6 },
+    { item: 'Pão integral', alt: 'Cuscuz', quantity: '2 fatias', calories: 140, protein: 6, carbs: 24, fat: 2 },
   ];
 
-  if (objective === 'definição') {
-    supplements.push({ name: 'Cafeína', dosage: '200-400mg', timing: '30 min pré-treino (antes das 14h)', reference: 'Goldstein et al., 2010 — ISSN' });
+  const fatSources: FoodEntry[] = [
+    { item: 'Pasta de amendoim', alt: 'Azeite extra virgem (10ml)', quantity: '15g', calories: 90, protein: 4, carbs: 3, fat: 8 },
+    { item: 'Abacate', alt: 'Castanhas mistas', quantity: '50g', calories: 80, protein: 1, carbs: 4, fat: 7 },
+    { item: 'Castanha-do-pará', alt: 'Nozes', quantity: '3 unidades', calories: 60, protein: 1, carbs: 1, fat: 6 },
+    { item: 'Azeite extra virgem', alt: 'Óleo de coco', quantity: '10ml', calories: 88, protein: 0, carbs: 0, fat: 10 },
+  ];
+
+  const supplementProteins: FoodEntry[] = [
+    { item: 'Whey protein isolado', alt: '4 ovos inteiros', quantity: '30g (1 scoop)', calories: 120, protein: 25, carbs: 2, fat: 1 },
+    { item: 'Caseína', alt: 'Iogurte grego natural (200g)', quantity: '30g', calories: 120, protein: 24, carbs: 3, fat: 1 },
+  ];
+
+  const vegSources: FoodEntry[] = [
+    { item: 'Brócolis', alt: 'Couve-flor', quantity: '100g', calories: 35, protein: 3, carbs: 7, fat: 0 },
+    { item: 'Espinafre refogado', alt: 'Couve refogada', quantity: '100g', calories: 23, protein: 3, carbs: 4, fat: 0 },
+    { item: 'Salada verde (alface, tomate, pepino)', alt: 'Legumes variados', quantity: 'à vontade', calories: 30, protein: 2, carbs: 5, fat: 0 },
+  ];
+
+  // Pick a food that's not forbidden, with alternative
+  const pickFood = (options: FoodEntry[]): FoodItem | null => {
+    for (const f of options) {
+      if (!isForbidden(f.item)) {
+        const altStr = !isForbidden(f.alt) ? f.alt : undefined;
+        return { item: f.item, quantity: f.quantity, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat, alternative: altStr };
+      }
+      // Try alt as primary
+      if (!isForbidden(f.alt)) {
+        return { item: f.alt, quantity: f.quantity, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat };
+      }
+    }
+    return options.length > 0 ? { item: options[0].item, quantity: options[0].quantity, calories: options[0].calories, protein: options[0].protein, carbs: options[0].carbs, fat: options[0].fat, alternative: options[0].alt } : null;
+  };
+
+  const pickProteinSupp = (): FoodItem | null => {
+    if (!canAffordSupplements && !maybeSupplements) {
+      // Use whole food alternative directly
+      for (const f of supplementProteins) {
+        if (!isForbidden(f.alt)) {
+          return { item: f.alt, quantity: f.quantity, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat };
+        }
+      }
+    }
+    return pickFood(supplementProteins);
+  };
+
+  // Build meals based on mealsPerDay
+  const mealSlots: { name: string; time: string }[] = [];
+  if (mealsPerDay >= 2) {
+    mealSlots.push({ name: 'Refeição 1 — Desjejum', time: schedule.meal1 });
+    mealSlots.push({ name: `Refeição ${mealsPerDay} — Jantar`, time: schedule.dinner });
   }
+  if (mealsPerDay >= 3) {
+    mealSlots.splice(1, 0, { name: 'Refeição 2 — Almoço', time: schedule.lunch });
+  }
+  if (mealsPerDay >= 4) {
+    mealSlots.splice(1, 0, { name: 'Refeição 2 — Pré-treino', time: schedule.preTrain });
+    // Rename others
+    for (let i = 0; i < mealSlots.length; i++) {
+      const num = i + 1;
+      if (i === 0) mealSlots[i].name = `Refeição ${num} — Desjejum`;
+      else if (i === mealSlots.length - 1) mealSlots[i].name = `Refeição ${num} — Jantar`;
+      else if (mealSlots[i].time === schedule.lunch) mealSlots[i].name = `Refeição ${num} — Almoço`;
+      else if (mealSlots[i].time === schedule.preTrain) mealSlots[i].name = `Refeição ${num} — Pré-treino`;
+    }
+  }
+  if (mealsPerDay >= 5) {
+    mealSlots.splice(mealSlots.length - 1, 0, { name: `Refeição ${mealsPerDay - 1} — Lanche`, time: schedule.snack });
+    for (let i = 0; i < mealSlots.length; i++) mealSlots[i].name = mealSlots[i].name.replace(/^Refeição \d+/, `Refeição ${i + 1}`);
+  }
+  if (mealsPerDay >= 6) {
+    mealSlots.push({ name: `Refeição ${mealsPerDay} — Ceia`, time: schedule.ceia });
+    // Fix dinner name
+    for (let i = 0; i < mealSlots.length; i++) mealSlots[i].name = mealSlots[i].name.replace(/^Refeição \d+/, `Refeição ${i + 1}`);
+  }
+
+  // Distribute calories across meals
+  const calPerMeal = Math.round(dailyCalories / mealSlots.length);
+
+  const meals: Meal[] = mealSlots.map((slot, idx) => {
+    const foods: FoodItem[] = [];
+    const isBreakfast = idx === 0;
+    const isPreTrain = slot.time === schedule.preTrain;
+    const isDinner = slot.name.includes('Jantar') || slot.name.includes('Ceia');
+
+    // Add protein source
+    const protIdx = idx % proteinSources.length;
+    if (isBreakfast || isPreTrain) {
+      const suppProt = pickProteinSupp();
+      if (suppProt) foods.push(suppProt);
+      const egg = pickFood([proteinSources[4]]);
+      if (!isPreTrain && egg) foods.push(egg);
+    } else {
+      const prot = pickFood([proteinSources[protIdx % 4]]);
+      if (prot) foods.push(prot);
+    }
+
+    // Add carb source
+    const carbIdx = idx % carbSources.length;
+    const carb = pickFood(isBreakfast ? [carbSources[3], carbSources[4]] : [carbSources[carbIdx]]);
+    if (carb) foods.push(carb);
+
+    // Add veg (lunch/dinner)
+    if (!isBreakfast && !isPreTrain) {
+      const veg = pickFood([vegSources[idx % vegSources.length]]);
+      if (veg) foods.push(veg);
+    }
+
+    // Add fat source for some meals
+    if (idx % 2 === 0 || isDinner) {
+      const fatFood = pickFood([fatSources[idx % fatSources.length]]);
+      if (fatFood) foods.push(fatFood);
+    }
+
+    // Add fruit for breakfast/pre-train
+    if (isBreakfast || isPreTrain) {
+      if (!isForbidden('banana')) {
+        foods.push({ item: 'Banana', quantity: '1 unidade', calories: 105, protein: 1, carbs: 27, fat: 0, alternative: 'Maçã' });
+      } else if (!isForbidden('maçã')) {
+        foods.push({ item: 'Maçã', quantity: '1 unidade', calories: 95, protein: 0, carbs: 25, fat: 0 });
+      }
+    }
+
+    // Add feijão for lunch
+    if (slot.name.includes('Almoço') && !isForbidden('feijão')) {
+      foods.push({ item: 'Feijão preto', quantity: '100g (cozido)', calories: 130, protein: 9, carbs: 23, fat: 0, alternative: 'Lentilha' });
+    }
+
+    const totalCalories = foods.reduce((sum, f) => sum + f.calories, 0);
+    const totalProtein = foods.reduce((sum, f) => sum + f.protein, 0);
+
+    return { name: slot.name, time: slot.time, foods, totalCalories, totalProtein };
+  });
+
+  // === HYDRATION ===
+  const recommendedWaterMl = Math.round(weight * 35);
+  const recommendedWaterL = (recommendedWaterMl / 1000).toFixed(1);
+  const currentWaterMap: Record<string, string> = {
+    'menos_1L': '< 1L', '1L': '1L', '2L': '2L', '3L': '3L', 'mais_3L': '> 3L',
+  };
+  const currentWater = currentWaterMap[waterIntakeLabel] || 'Não informado';
+  const currentWaterNum = waterIntakeLabel === 'menos_1L' ? 0.7 : waterIntakeLabel === '1L' ? 1 : waterIntakeLabel === '2L' ? 2 : waterIntakeLabel === '3L' ? 3 : waterIntakeLabel === 'mais_3L' ? 3.5 : 0;
+  const waterDiff = (recommendedWaterMl / 1000) - currentWaterNum;
+
+  let hydrationText = `💧 Consumo atual: ${currentWater} | Recomendado: ${recommendedWaterL}L/dia (${weight}kg × 35ml)`;
+  if (waterDiff > 0.3) {
+    hydrationText += ` | ⚠️ Aumente ${waterDiff.toFixed(1)}L para atingir o ideal`;
+  } else if (currentWaterNum > 0) {
+    hydrationText += ` | ✅ Consumo adequado`;
+  }
+
+  // === SUPPLEMENTS (conditional) ===
+  const supplements: { name: string; dosage: string; timing: string; reference: string }[] = [];
+
+  if (canAffordSupplements || maybeSupplements) {
+    supplements.push(
+      { name: 'Creatina monohidratada', dosage: '5g/dia', timing: 'Qualquer horário, com água', reference: 'ISSN Position Stand — Kreider et al., 2017' },
+      { name: 'Whey Protein Isolado', dosage: '30g pós-treino', timing: 'Dentro de 2h após treino', reference: 'Schoenfeld & Aragon, 2018' },
+    );
+    if (maybeSupplements) {
+      supplements.forEach(s => s.name += ' (opcional)');
+    }
+    supplements.push(
+      { name: 'Vitamina D3', dosage: '2000-4000 UI/dia', timing: 'Com refeição gordurosa', reference: 'Endocrine Society Guidelines' },
+      { name: 'Magnésio bisglicinato', dosage: '200-400mg', timing: 'Antes de dormir', reference: 'Andrew Huberman — sono e recuperação' },
+    );
+    if (objective === 'definição') {
+      supplements.push({ name: 'Cafeína', dosage: '200-400mg', timing: '30 min pré-treino (antes das 14h)', reference: 'Goldstein et al., 2010 — ISSN' });
+    }
+  }
+
+  // Alcohol/smoking warnings in goal
+  let warnings = '';
+  if (alcohol === 'frequentemente') {
+    warnings += ' ⚠️ Consumo frequente de álcool compromete síntese proteica e recuperação muscular.';
+  } else if (alcohol === 'socialmente') {
+    warnings += ' ℹ️ Consumo social de álcool: priorize refeições ricas em proteína antes e hidratação extra.';
+  }
+  if (smoking === 'sim') {
+    warnings += ' ⚠️ Tabagismo regular reduz VO2max e dificulta ganho muscular.';
+  }
+  if (warnings) goal += warnings;
 
   return {
     goal,
     dailyCalories,
     macros: { protein, carbs, fat },
     meals,
-    hydration: `${Math.round(weight * 0.035 * 10) / 10}L/dia mínimo (${Math.round(weight * 0.045 * 10) / 10}L em dias de treino)`,
+    hydration: hydrationText,
     supplements,
   };
 }

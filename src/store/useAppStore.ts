@@ -18,6 +18,17 @@ export interface PersonalProfile {
   preferredTrainingTime: string;
 }
 
+export interface NutritionProfile {
+  canAffordSupplements: string;
+  allergies: string;
+  likedFoods: string;
+  dislikedFoods: string;
+  dailyWaterIntake: string;
+  alcoholConsumption: string;
+  smoking: string;
+  mealsPerDay: string;
+}
+
 export interface PhysicalProfile {
   weight: string;
   height: string;
@@ -71,6 +82,7 @@ export interface UserProfile {
   mental: MentalProfile;
   financial: FinancialProfile;
   entrepreneur: EntrepreneurProfile;
+  nutrition: NutritionProfile;
 }
 
 export interface Goal {
