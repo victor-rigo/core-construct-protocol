@@ -1,8 +1,11 @@
 import { useAuth } from '@/hooks/useAuth';
-import { Navigate } from 'react-router-dom';
+import { useAppStore } from '@/store/useAppStore';
+import { Navigate, useLocation } from 'react-router-dom';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const hasCompletedOnboarding = useAppStore((s) => s.hasCompletedOnboarding);
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -14,6 +17,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // If onboarding not completed, redirect to /onboarding (unless already there)
+  if (!hasCompletedOnboarding && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
   }
 
   return <>{children}</>;

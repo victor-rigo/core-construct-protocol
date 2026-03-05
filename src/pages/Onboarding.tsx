@@ -43,11 +43,35 @@ const Onboarding = () => {
     paidTrafficKnowledge: '',
   });
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     const profile: UserProfile = { personal, physical, mental, financial, entrepreneur };
     setProfile(profile);
-    // Don't mark as completed yet - redirect to auth first
-    navigate('/auth');
+
+    // If user is authenticated, save to DB and redirect to dashboard
+    const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
+    if (session?.user) {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { mapProfileToFormResponse, saveFormResponse, generateRuleBasedProtocol } = await import('@/lib/protocolRuleEngine');
+
+      // Save profile data
+      await supabase.from('profiles').update({
+        profile_data: profile as any,
+        has_completed_onboarding: true,
+      }).eq('id', session.user.id);
+
+      // Save form responses and generate protocol
+      const mapped = mapProfileToFormResponse(profile);
+      const responseId = await saveFormResponse(session.user.id, mapped);
+      if (responseId) {
+        await generateRuleBasedProtocol(session.user.id, responseId, mapped);
+      }
+
+      setHasCompletedOnboarding(true);
+      navigate('/dashboard');
+    } else {
+      // Not authenticated yet - redirect to auth
+      navigate('/auth');
+    }
   };
 
   const next = () => { if (step < steps.length - 1) setStep(step + 1); else handleComplete(); };
