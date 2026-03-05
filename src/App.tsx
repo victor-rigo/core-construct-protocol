@@ -26,7 +26,7 @@ const App = () => (
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/protocol" element={<Protocol />} />
+          <Route path="/protocol" element={<ProtectedRoute><Protocol /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/goals" element={<ProtectedRoute><GoalsPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
