@@ -132,6 +132,9 @@ const ProtocolPhysical = ({ profile }: Props) => {
                   {meal.foods.map((food, j) => (
                     <span key={j} className="text-xs text-muted-foreground bg-secondary/50 px-2 py-1 rounded">
                       {food.item} ({food.quantity})
+                      {food.alternative && (
+                        <span className="text-emerald-400 ml-1">ou {food.alternative}</span>
+                      )}
                     </span>
                   ))}
                 </div>

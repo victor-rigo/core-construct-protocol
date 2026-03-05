@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore, UserProfile } from '@/store/useAppStore';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const steps = ['Perfil Pessoal', 'Área Física', 'Área Mental', 'Área Financeira', 'Modo Empresário'];
+const steps = ['Perfil Pessoal', 'Área Física', 'Nutrição', 'Área Mental', 'Área Financeira', 'Modo Empresário'];
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -37,6 +37,12 @@ const Onboarding = () => {
     expenseSubscriptions: '', expenseOther: '', expenseToImprove: '',
   });
 
+  const [nutrition, setNutrition] = useState({
+    canAffordSupplements: '', allergies: '', likedFoods: '',
+    dislikedFoods: '', dailyWaterIntake: '', alcoholConsumption: 'não',
+    smoking: 'não', mealsPerDay: '4',
+  });
+
   const [entrepreneur, setEntrepreneur] = useState({
     enabled: false, monthlyRevenue: '', margin: '', businessModel: '',
     hasTeam: 'não', mainBottleneck: '', acquisitionChannel: '',
@@ -44,7 +50,7 @@ const Onboarding = () => {
   });
 
   const handleComplete = async () => {
-    const profile: UserProfile = { personal, physical, mental, financial, entrepreneur };
+    const profile: UserProfile = { personal, physical, mental, financial, entrepreneur, nutrition };
     setProfile(profile);
 
     // If user is authenticated, save to DB and redirect to dashboard
@@ -136,6 +142,39 @@ const Onboarding = () => {
       case 2:
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div><label className={labelClass}>Condição para suplementos</label>
+              <select className={selectClass} value={nutrition.canAffordSupplements} onChange={(e) => setNutrition({ ...nutrition, canAffordSupplements: e.target.value })}>
+                <option value="">Selecione</option><option value="sim">Sim</option><option value="não">Não</option><option value="depende">Talvez / depende do custo</option>
+              </select>
+            </div>
+            <div><label className={labelClass}>Quantas refeições por dia?</label>
+              <select className={selectClass} value={nutrition.mealsPerDay} onChange={(e) => setNutrition({ ...nutrition, mealsPerDay: e.target.value })}>
+                <option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6 ou mais</option>
+              </select>
+            </div>
+            <div><label className={labelClass}>Consumo de água diário</label>
+              <select className={selectClass} value={nutrition.dailyWaterIntake} onChange={(e) => setNutrition({ ...nutrition, dailyWaterIntake: e.target.value })}>
+                <option value="">Selecione</option><option value="menos_1L">Menos de 1L</option><option value="1L">1L</option><option value="2L">2L</option><option value="3L">3L</option><option value="mais_3L">Mais de 3L</option>
+              </select>
+            </div>
+            <div><label className={labelClass}>Consumo de álcool</label>
+              <select className={selectClass} value={nutrition.alcoholConsumption} onChange={(e) => setNutrition({ ...nutrition, alcoholConsumption: e.target.value })}>
+                <option value="não">Não</option><option value="raramente">Raramente</option><option value="socialmente">Socialmente (finais de semana)</option><option value="frequentemente">Frequentemente</option>
+              </select>
+            </div>
+            <div><label className={labelClass}>Você fuma?</label>
+              <select className={selectClass} value={nutrition.smoking} onChange={(e) => setNutrition({ ...nutrition, smoking: e.target.value })}>
+                <option value="não">Não</option><option value="ocasionalmente">Ocasionalmente</option><option value="sim">Sim, regularmente</option>
+              </select>
+            </div>
+            <div className="md:col-span-2"><label className={labelClass}>Alergias ou intolerâncias alimentares</label><textarea className={inputClass + " min-h-[60px] resize-none"} placeholder="Ex: lactose, glúten, frutos do mar... (deixe vazio se não tiver)" value={nutrition.allergies} onChange={(e) => setNutrition({ ...nutrition, allergies: e.target.value })} /></div>
+            <div className="md:col-span-2"><label className={labelClass}>Alimentos que você GOSTA e quer na dieta</label><textarea className={inputClass + " min-h-[60px] resize-none"} placeholder="Ex: frango, arroz, banana, churrasco no fim de semana..." value={nutrition.likedFoods} onChange={(e) => setNutrition({ ...nutrition, likedFoods: e.target.value })} /></div>
+            <div className="md:col-span-2"><label className={labelClass}>Alimentos que você NÃO GOSTA ou quer evitar</label><textarea className={inputClass + " min-h-[60px] resize-none"} placeholder="Ex: aveia, peixe, brócolis..." value={nutrition.dislikedFoods} onChange={(e) => setNutrition({ ...nutrition, dislikedFoods: e.target.value })} /></div>
+          </div>
+        );
+      case 3:
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
               <label className={labelClass}>Nível de Foco ({mental.focusLevel}/10)</label>
               <input type="range" min="1" max="10" value={mental.focusLevel} onChange={(e) => setMental({ ...mental, focusLevel: parseInt(e.target.value) })} className="w-full accent-foreground" />
@@ -154,7 +193,7 @@ const Onboarding = () => {
             </div>
           </div>
         );
-      case 3:
+      case 4:
         return (
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -201,7 +240,7 @@ const Onboarding = () => {
             </div>
           </div>
         );
-      case 4:
+      case 5:
         return (
           <div className="space-y-6">
             <div className="flex items-center gap-4 p-4 bg-secondary border border-border">
