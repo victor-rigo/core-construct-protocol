@@ -34,9 +34,12 @@ serve(async (req) => {
 
     const { profile } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY not configured");
+      throw new Error("Configuração do servidor incompleta.");
+    }
 
-    if (!profile) throw new Error("Profile data is required");
+    if (!profile) throw new Error("Dados de perfil são obrigatórios.");
 
     const systemPrompt = buildSystemPrompt(profile);
     const userPrompt = buildUserPrompt(profile);
@@ -81,7 +84,7 @@ serve(async (req) => {
         });
       }
       console.error("AI gateway error:", status, body);
-      throw new Error(`AI gateway error: ${status}`);
+      throw new Error("Erro ao gerar protocolo. Tente novamente.");
     }
 
     const data = await response.json();
@@ -99,7 +102,8 @@ serve(async (req) => {
           });
         } catch { /* fall through */ }
       }
-      throw new Error("AI did not return structured protocol data");
+      console.error("AI did not return structured protocol data");
+      throw new Error("Erro ao processar resposta. Tente novamente.");
     }
 
     const protocolData = JSON.parse(toolCall.function.arguments);
@@ -108,8 +112,17 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("generate-protocol error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    console.error("[generate-protocol] error:", e);
+    const safeMessages = [
+      "Configuração do servidor incompleta.",
+      "Dados de perfil são obrigatórios.",
+      "Erro ao gerar protocolo. Tente novamente.",
+      "Erro ao processar resposta. Tente novamente.",
+    ];
+    const message = e instanceof Error && safeMessages.includes(e.message)
+      ? e.message
+      : "Erro interno. Tente novamente.";
+    return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
