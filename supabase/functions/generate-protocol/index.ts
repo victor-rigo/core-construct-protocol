@@ -84,7 +84,7 @@ serve(async (req) => {
         });
       }
       console.error("AI gateway error:", status, body);
-      throw new Error(`AI gateway error: ${status}`);
+      throw new Error("Erro ao gerar protocolo. Tente novamente.");
     }
 
     const data = await response.json();
