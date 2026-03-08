@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,13 +45,24 @@ const Protocol = () => {
         return;
       }
 
-      // No existing protocol — generate one if we have profile data
-      if (storeProfile) {
+      // No existing protocol — get profile (from store or DB fallback)
+      let profileToUse = storeProfile;
+      if (!profileToUse) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('profile_data')
+          .eq('id', user.id)
+          .single();
+        if (data?.profile_data) {
+          profileToUse = data.profile_data as any;
+        }
+      }
+
+      if (profileToUse) {
         setGenerating(true);
-        const result = await generateAIProtocol(storeProfile);
+        const result = await generateAIProtocol(profileToUse);
         if (result) {
-          // Save form response first
-          const mapped = mapProfileToFormResponse(storeProfile);
+          const mapped = mapProfileToFormResponse(profileToUse);
           const responseId = await saveFormResponse(user.id, mapped);
           if (responseId) {
             await saveAIProtocol(user.id, responseId, result);
@@ -75,13 +87,19 @@ const Protocol = () => {
   }, [user, authLoading, storeProfile]);
 
   const handleRegenerate = async () => {
-    if (!user || !storeProfile) return;
+    if (!user) return;
+    let profileToUse = storeProfile;
+    if (!profileToUse) {
+      const { data } = await supabase.from('profiles').select('profile_data').eq('id', user.id).single();
+      if (data?.profile_data) profileToUse = data.profile_data as any;
+    }
+    if (!profileToUse) return;
     setGenerating(true);
     setError(null);
     try {
-      const result = await generateAIProtocol(storeProfile);
+      const result = await generateAIProtocol(profileToUse);
       if (result) {
-        const mapped = mapProfileToFormResponse(storeProfile);
+        const mapped = mapProfileToFormResponse(profileToUse);
         const responseId = await saveFormResponse(user.id, mapped);
         if (responseId) {
           await saveAIProtocol(user.id, responseId, result);

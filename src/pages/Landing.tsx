@@ -110,7 +110,7 @@ const Landing = () => {
             </motion.p>
             <motion.div {...fadeUp(1)} className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                onClick={() => navigate(hasCompletedOnboarding ? '/dashboard' : '/onboarding')}
+                onClick={() => navigate(hasCompletedOnboarding ? '/dashboard' : '/auth')}
                 className="px-10 py-4 bg-primary text-primary-foreground font-display font-semibold text-sm tracking-widest uppercase hover:bg-primary/90 transition-all duration-300"
               >
                 {hasCompletedOnboarding ? 'Acessar Protocolo' : 'Iniciar Protocolo'}
@@ -279,7 +279,7 @@ const Landing = () => {
                     ))}
                   </ul>
                   <button
-                    onClick={() => navigate('/onboarding')}
+                    onClick={() => navigate('/auth')}
                     className={`w-full py-3.5 font-display text-xs tracking-widest uppercase font-semibold transition-all duration-300 ${
                       plan.highlight
                         ? 'bg-foreground text-background hover:bg-foreground/90'
@@ -306,7 +306,7 @@ const Landing = () => {
                 O protocolo não espera. A sua evolução também não deveria.
               </p>
               <button
-                onClick={() => navigate('/onboarding')}
+                onClick={() => navigate('/auth')}
                 className="px-12 py-4 bg-primary text-primary-foreground font-display font-semibold text-sm tracking-widest uppercase hover:bg-primary/90 transition-all duration-300"
               >
                 Iniciar Protocolo

@@ -26,6 +26,7 @@ const Auth = () => {
     });
   }, [navigate, hasCompletedOnboarding]);
 
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -71,7 +72,7 @@ const Auth = () => {
             await generateRuleBasedProtocol(user.id, responseId, mapped);
           }
 
-          navigate('/dashboard');
+          navigate('/onboarding');
         } else {
           setMessage('Verifique seu email para confirmar a conta.');
         }
