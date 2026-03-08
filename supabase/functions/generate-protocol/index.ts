@@ -128,6 +128,53 @@ serve(async (req) => {
 });
 
 // ============================================================
+// Parsing helpers
+// ============================================================
+
+function tryParseJson(input: unknown): any | null {
+  if (!input) return null;
+  if (typeof input === "object") return input;
+  if (typeof input !== "string") return null;
+
+  try {
+    return JSON.parse(input);
+  } catch {
+    return null;
+  }
+}
+
+function extractProtocolFromContent(content: unknown): any | null {
+  if (!content) return null;
+
+  if (Array.isArray(content)) {
+    const text = content
+      .map((part) => (typeof part?.text === "string" ? part.text : typeof part === "string" ? part : ""))
+      .join("\n");
+    return extractProtocolFromContent(text);
+  }
+
+  if (typeof content !== "string") return null;
+
+  const direct = tryParseJson(content);
+  if (direct) return direct;
+
+  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)?.[1];
+  if (fenced) {
+    const parsedFenced = tryParseJson(fenced);
+    if (parsedFenced) return parsedFenced;
+  }
+
+  const firstBrace = content.indexOf("{");
+  const lastBrace = content.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    const candidate = content.slice(firstBrace, lastBrace + 1);
+    return tryParseJson(candidate);
+  }
+
+  return null;
+}
+
+// ============================================================
 // SYSTEM PROMPT — Engineered with XML tags, CoT, constraints
 // ============================================================
 
