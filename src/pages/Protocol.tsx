@@ -87,11 +87,17 @@ const Protocol = () => {
   }, [user, authLoading, storeProfile]);
 
   const handleRegenerate = async () => {
-    if (!user || !storeProfile) return;
+    if (!user) return;
+    let profileToUse = storeProfile;
+    if (!profileToUse) {
+      const { data } = await supabase.from('profiles').select('profile_data').eq('id', user.id).single();
+      if (data?.profile_data) profileToUse = data.profile_data as any;
+    }
+    if (!profileToUse) return;
     setGenerating(true);
     setError(null);
     try {
-      const result = await generateAIProtocol(storeProfile);
+      const result = await generateAIProtocol(profileToUse);
       if (result) {
         const mapped = mapProfileToFormResponse(storeProfile);
         const responseId = await saveFormResponse(user.id, mapped);
