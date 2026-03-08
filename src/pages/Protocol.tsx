@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { loadLatestAIProtocol, generateAIProtocol, saveAIProtocol, type AIProtocolData } from '@/lib/aiProtocolService';
 import { mapProfileToFormResponse, saveFormResponse } from '@/lib/protocolRuleEngine';
 import { AlertTriangle, Clock, Dumbbell, DollarSign, Briefcase, Eye, RefreshCw } from 'lucide-react';
+import ProtocolAssistant from '@/components/protocol/ProtocolAssistant';
 import ProtocolHeader from '@/components/protocol/ProtocolHeader';
 import ProtocolOverview from '@/components/protocol/ProtocolOverview';
 import ProtocolRoutine from '@/components/protocol/ProtocolRoutine';
@@ -172,6 +173,10 @@ const Protocol = () => {
 
   const visibleTabs = tabs.filter(t => !t.conditional);
 
+  const handleProtocolUpdated = (newProtocol: AIProtocolData) => {
+    setAiProtocol(newProtocol);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <ProtocolHeader
@@ -217,6 +222,9 @@ const Protocol = () => {
           {activeTab === 'entrepreneur' && <ProtocolEntrepreneur aiProtocol={aiProtocol} profile={profile} />}
         </motion.div>
       </div>
+
+      {/* AI Assistant */}
+      <ProtocolAssistant aiProtocol={aiProtocol} onProtocolUpdated={handleProtocolUpdated} />
     </div>
   );
 };
