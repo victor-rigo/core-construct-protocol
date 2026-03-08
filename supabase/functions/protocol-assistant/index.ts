@@ -107,8 +107,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
-    console.error("protocol-assistant error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    console.error("[protocol-assistant] error:", e);
+    return new Response(JSON.stringify({ error: "Erro interno. Tente novamente." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

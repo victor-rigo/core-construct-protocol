@@ -112,8 +112,17 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("generate-protocol error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    console.error("[generate-protocol] error:", e);
+    const safeMessages = [
+      "Configuração do servidor incompleta.",
+      "Dados de perfil são obrigatórios.",
+      "Erro ao gerar protocolo. Tente novamente.",
+      "Erro ao processar resposta. Tente novamente.",
+    ];
+    const message = e instanceof Error && safeMessages.includes(e.message)
+      ? e.message
+      : "Erro interno. Tente novamente.";
+    return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
