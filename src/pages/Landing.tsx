@@ -279,7 +279,7 @@ const Landing = () => {
                     ))}
                   </ul>
                   <button
-                    onClick={() => navigate('/onboarding')}
+                    onClick={() => navigate('/auth')}
                     className={`w-full py-3.5 font-display text-xs tracking-widest uppercase font-semibold transition-all duration-300 ${
                       plan.highlight
                         ? 'bg-foreground text-background hover:bg-foreground/90'
