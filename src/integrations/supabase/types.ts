@@ -76,18 +76,21 @@ export type Database = {
       }
       generated_protocols: {
         Row: {
+          ai_protocol_data: Json | null
           created_at: string
           id: string
           response_id: string
           user_id: string
         }
         Insert: {
+          ai_protocol_data?: Json | null
           created_at?: string
           id?: string
           response_id: string
           user_id: string
         }
         Update: {
+          ai_protocol_data?: Json | null
           created_at?: string
           id?: string
           response_id?: string
