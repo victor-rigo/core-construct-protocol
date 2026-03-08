@@ -102,7 +102,8 @@ serve(async (req) => {
           });
         } catch { /* fall through */ }
       }
-      throw new Error("AI did not return structured protocol data");
+      console.error("AI did not return structured protocol data");
+      throw new Error("Erro ao processar resposta. Tente novamente.");
     }
 
     const protocolData = JSON.parse(toolCall.function.arguments);
