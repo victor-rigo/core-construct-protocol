@@ -99,7 +99,7 @@ const Protocol = () => {
     try {
       const result = await generateAIProtocol(profileToUse);
       if (result) {
-        const mapped = mapProfileToFormResponse(storeProfile);
+        const mapped = mapProfileToFormResponse(profileToUse);
         const responseId = await saveFormResponse(user.id, mapped);
         if (responseId) {
           await saveAIProtocol(user.id, responseId, result);
