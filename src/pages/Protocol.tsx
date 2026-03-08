@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { useAppStore } from '@/store/useAppStore';
 import { loadLatestAIProtocol, generateAIProtocol, saveAIProtocol, type AIProtocolData } from '@/lib/aiProtocolService';
 import { mapProfileToFormResponse, saveFormResponse } from '@/lib/protocolRuleEngine';
