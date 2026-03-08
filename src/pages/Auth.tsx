@@ -72,7 +72,7 @@ const Auth = () => {
             await generateRuleBasedProtocol(user.id, responseId, mapped);
           }
 
-          navigate('/dashboard');
+          navigate('/onboarding');
         } else {
           setMessage('Verifique seu email para confirmar a conta.');
         }

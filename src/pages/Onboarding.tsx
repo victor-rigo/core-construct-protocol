@@ -88,7 +88,7 @@ const Onboarding = () => {
       }
 
       setHasCompletedOnboarding(true);
-      navigate('/protocol');
+      navigate('/dashboard');
     } else {
       navigate('/auth');
     }

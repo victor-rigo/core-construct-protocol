@@ -306,7 +306,7 @@ const Landing = () => {
                 O protocolo não espera. A sua evolução também não deveria.
               </p>
               <button
-                onClick={() => navigate('/onboarding')}
+                onClick={() => navigate('/auth')}
                 className="px-12 py-4 bg-primary text-primary-foreground font-display font-semibold text-sm tracking-widest uppercase hover:bg-primary/90 transition-all duration-300"
               >
                 Iniciar Protocolo

@@ -19,9 +19,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  // If onboarding not completed, redirect to /onboarding (unless already there)
+  // If onboarding not completed, allow /onboarding but redirect everything else there
   if (!hasCompletedOnboarding && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
+  }
+
+  // If onboarding completed, don't allow going back to /onboarding
+  if (hasCompletedOnboarding && location.pathname === '/onboarding') {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
