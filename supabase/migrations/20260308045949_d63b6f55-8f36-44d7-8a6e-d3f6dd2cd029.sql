@@ -1,0 +1,1 @@
+ALTER TABLE public.generated_protocols ADD COLUMN ai_protocol_data jsonb DEFAULT NULL;

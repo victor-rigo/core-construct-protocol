@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, Dumbbell, DollarSign, Briefcase, Target, ChevronDown, ChevronUp, CheckCircle, AlertTriangle } from 'lucide-react';
-import type { ProtocolBlock, FormResponseData } from '@/lib/protocolRuleEngine';
 import type { UserProfile } from '@/store/useAppStore';
+import type { AIProtocolData } from '@/lib/aiProtocolService';
+
+interface Props {
+  aiProtocol: AIProtocolData | null;
+  profile: UserProfile | null;
+}
 
 const categoriaLabels: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   rotina: { label: 'Rotina & Hábitos', icon: <Clock className="w-5 h-5" />, color: 'border-blue-500/30 bg-blue-500/5' },
@@ -11,31 +16,20 @@ const categoriaLabels: Record<string, { label: string; icon: React.ReactNode; co
   empresario: { label: 'Modo Empresário', icon: <Briefcase className="w-5 h-5" />, color: 'border-purple-500/30 bg-purple-500/5' },
 };
 
-interface Props {
-  blocks: ProtocolBlock[];
-  formData: FormResponseData | null;
-  profile: UserProfile | null;
-}
+const ProtocolOverview = ({ aiProtocol, profile }: Props) => {
+  const [expandedSection, setExpandedSection] = useState<string | null>('actions');
 
-const ProtocolOverview = ({ blocks, formData, profile }: Props) => {
-  const [expandedCategoria, setExpandedCategoria] = useState<string | null>('rotina');
+  if (!aiProtocol) {
+    return (
+      <div className="glass-card p-8 text-center">
+        <AlertTriangle className="w-6 h-6 text-muted-foreground mx-auto mb-3" />
+        <p className="text-sm text-muted-foreground">Protocolo não disponível. Regenere ou refaça o onboarding.</p>
+      </div>
+    );
+  }
 
-  const blocksByCategory = blocks.reduce((acc, block) => {
-    if (!acc[block.categoria]) acc[block.categoria] = [];
-    acc[block.categoria].push(block);
-    return acc;
-  }, {} as Record<string, ProtocolBlock[]>);
-
-  const categories = Object.keys(blocksByCategory);
-
-  // Missing fields detection
-  const missingFields: string[] = [];
-  if (!formData?.idade) missingFields.push('Idade');
-  if (!formData?.profissao) missingFields.push('Profissão');
-  if (!formData?.horario_inicio) missingFields.push('Horário de trabalho');
-  if (!formData?.objetivo_fisico) missingFields.push('Objetivo físico');
-  if (!formData?.renda_atual) missingFields.push('Renda atual');
-  if (formData?.nivel_foco === undefined) missingFields.push('Nível de foco');
+  const overview = aiProtocol.overview;
+  const missingFields = overview.missingFields || [];
 
   return (
     <div className="space-y-6">
@@ -72,6 +66,12 @@ const ProtocolOverview = ({ blocks, formData, profile }: Props) => {
         </div>
       )}
 
+      {/* AI Summary */}
+      <div className="glass-card p-6">
+        <h3 className="font-display font-semibold text-sm tracking-wider uppercase mb-3">📋 Resumo do Protocolo</h3>
+        <p className="text-sm text-muted-foreground leading-relaxed">{overview.summary}</p>
+      </div>
+
       {/* Missing fields warning */}
       {missingFields.length > 0 && (
         <div className="p-4 border border-amber-500/30 bg-amber-500/5 rounded-lg">
@@ -81,72 +81,61 @@ const ProtocolOverview = ({ blocks, formData, profile }: Props) => {
               <p className="text-sm font-semibold">Campos ausentes detectados</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Os seguintes campos não foram preenchidos: <strong>{missingFields.join(', ')}</strong>.
-                Isso pode limitar a precisão do seu protocolo. Refaça o onboarding para completar.
+                Isso pode limitar a precisão do seu protocolo.
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Blocks by category */}
-      {categories.length === 0 ? (
-        <div className="glass-card p-8 text-center">
-          <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-4" />
-          <h3 className="font-display text-lg font-bold mb-2">Nenhum alerta ativado</h3>
-          <p className="text-sm text-muted-foreground">
-            Suas respostas não ativaram nenhuma regra de alerta. Seu perfil está dentro dos parâmetros ideais.
-          </p>
-        </div>
-      ) : (
-        categories.map((cat) => {
-          const catInfo = categoriaLabels[cat] || { label: cat, icon: <Target className="w-5 h-5" />, color: 'border-border bg-secondary/30' };
-          const isExpanded = expandedCategoria === cat;
-          const catBlocks = blocksByCategory[cat];
+      {/* Priority Actions */}
+      <div className="border rounded-lg overflow-hidden border-border">
+        <button
+          onClick={() => setExpandedSection(expandedSection === 'actions' ? null : 'actions')}
+          className="w-full px-6 py-5 flex items-center justify-between text-left bg-secondary/20"
+        >
+          <div className="flex items-center gap-3">
+            <Target className="w-5 h-5" />
+            <div>
+              <h3 className="font-display font-semibold text-sm tracking-wider uppercase">Ações Prioritárias</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">{overview.priorityActions.length} ações identificadas pela IA</p>
+            </div>
+          </div>
+          {expandedSection === 'actions' ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+        </button>
 
-          return (
-            <div key={cat} className={`border rounded-lg overflow-hidden ${catInfo.color}`}>
-              <button
-                onClick={() => setExpandedCategoria(isExpanded ? null : cat)}
-                className="w-full px-6 py-5 flex items-center justify-between text-left"
-              >
-                <div className="flex items-center gap-3">
-                  {catInfo.icon}
-                  <div>
-                    <h3 className="font-display font-semibold text-sm tracking-wider uppercase">{catInfo.label}</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">{catBlocks.length} {catBlocks.length === 1 ? 'ação recomendada' : 'ações recomendadas'}</p>
-                  </div>
-                </div>
-                {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-              </button>
-
-              {isExpanded && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-t border-border/50">
-                  {catBlocks.map((block, i) => (
-                    <div key={block.id} className={`px-6 py-4 ${i < catBlocks.length - 1 ? 'border-b border-border/30' : ''}`}>
-                      <div className="flex items-start gap-3">
-                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-foreground/10 text-foreground text-xs font-bold mt-0.5 shrink-0">
-                          {block.prioridade}
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-semibold">{block.titulo}</h4>
-                          <p className="text-sm text-muted-foreground mt-1">{block.descricao}</p>
-                        </div>
+        {expandedSection === 'actions' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-t border-border/50">
+            {overview.priorityActions
+              .sort((a, b) => a.priority - b.priority)
+              .map((action, i) => {
+                const catInfo = categoriaLabels[action.category] || { label: action.category, icon: <Target className="w-4 h-4" />, color: '' };
+                return (
+                  <div key={i} className={`px-6 py-4 ${i < overview.priorityActions.length - 1 ? 'border-b border-border/30' : ''}`}>
+                    <div className="flex items-start gap-3">
+                      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-foreground/10 text-foreground text-xs font-bold mt-0.5 shrink-0">
+                        {action.priority}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold">{action.action}</p>
+                        <span className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
+                          {catInfo.icon} {catInfo.label}
+                        </span>
                       </div>
                     </div>
-                  ))}
-                </motion.div>
-              )}
-            </div>
-          );
-        })
-      )}
+                  </div>
+                );
+              })}
+          </motion.div>
+        )}
+      </div>
 
       {/* Transparency notice */}
       <div className="p-4 bg-secondary/30 border border-border text-xs text-muted-foreground rounded-lg">
-        <p className="font-semibold text-foreground mb-1">🔒 Transparência dos dados</p>
+        <p className="font-semibold text-foreground mb-1">🤖 Protocolo gerado por IA</p>
         <p>
-          Este protocolo foi gerado 100% com base nas suas respostas armazenadas no banco de dados.
-          Cada bloco foi ativado por regras condicionais — nenhum conteúdo foi inventado ou gerado por IA.
+          Este protocolo foi gerado com base nas suas respostas do formulário usando inteligência artificial.
+          Todos os dados utilizados vieram exclusivamente do seu perfil — nenhuma informação foi inventada.
         </p>
       </div>
     </div>
