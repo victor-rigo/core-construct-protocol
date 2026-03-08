@@ -29,17 +29,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let isMounted = true;
 
     const loadProfile = async (userId: string) => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('profile_data, has_completed_onboarding')
-        .eq('id', userId)
-        .single();
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('profile_data, has_completed_onboarding')
+          .eq('id', userId)
+          .single();
 
-      if (data && isMounted) {
-        if (data.profile_data) {
-          setProfile(data.profile_data as any);
+        if (data && isMounted) {
+          if (data.profile_data) {
+            setProfile(data.profile_data as any);
+          }
+          setHasCompletedOnboarding(data.has_completed_onboarding ?? false);
         }
-        setHasCompletedOnboarding(data.has_completed_onboarding ?? false);
+      } catch (err) {
+        console.error('Failed to load profile:', err);
       }
     };
 
