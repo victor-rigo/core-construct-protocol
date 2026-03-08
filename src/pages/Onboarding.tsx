@@ -57,7 +57,8 @@ const Onboarding = () => {
     const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
     if (session?.user) {
       const { supabase } = await import('@/integrations/supabase/client');
-      const { mapProfileToFormResponse, saveFormResponse, generateRuleBasedProtocol } = await import('@/lib/protocolRuleEngine');
+      const { mapProfileToFormResponse, saveFormResponse } = await import('@/lib/protocolRuleEngine');
+      const { generateAIProtocol, saveAIProtocol } = await import('@/lib/aiProtocolService');
 
       // Save profile data
       await supabase.from('profiles').update({
@@ -65,11 +66,20 @@ const Onboarding = () => {
         has_completed_onboarding: true,
       }).eq('id', session.user.id);
 
-      // Save form responses and generate protocol
+      // Save form responses
       const mapped = mapProfileToFormResponse(profile);
       const responseId = await saveFormResponse(session.user.id, mapped);
+
+      // Generate AI protocol
       if (responseId) {
-        await generateRuleBasedProtocol(session.user.id, responseId, mapped);
+        try {
+          const aiResult = await generateAIProtocol(profile);
+          if (aiResult) {
+            await saveAIProtocol(session.user.id, responseId, aiResult);
+          }
+        } catch (err) {
+          console.error('AI protocol generation failed, will retry on protocol page:', err);
+        }
       }
 
       setHasCompletedOnboarding(true);
