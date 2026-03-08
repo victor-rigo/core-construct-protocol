@@ -26,6 +26,7 @@ const Auth = () => {
     });
   }, [navigate, hasCompletedOnboarding]);
 
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
