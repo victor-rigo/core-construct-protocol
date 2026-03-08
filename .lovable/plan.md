@@ -1,69 +1,65 @@
 
 
-## Plano: Autenticação com Supabase + Persistência de Dados
+# Plan: Fix App Flow and Protocol Generation
 
-### Visão Geral
-Criar sistema de login/signup após o onboarding, salvar o perfil do usuário no Supabase e proteger o dashboard para usuários autenticados.
+## Problem Analysis
 
-### 1. Criar tabelas no Supabase (migração SQL)
+Two issues identified:
 
-**Tabela `profiles`:**
-- `id` (UUID, FK → auth.users, PK)
-- `email` (text)
-- `created_at` (timestamptz)
-- `updated_at` (timestamptz)
-- `profile_data` (JSONB — armazena todo o UserProfile do onboarding)
-- `has_completed_onboarding` (boolean, default false)
+1. **Broken flow**: Onboarding is NOT a protected route, so users complete it without being logged in. Profile data never reaches the database, and the `generate-protocol` Edge Function is never called (confirmed: zero invocation logs — only boot/shutdown).
 
-**RLS Policies:**
-- SELECT: usuário pode ler apenas seu próprio perfil
-- INSERT: usuário autenticado pode inserir seu próprio perfil
-- UPDATE: usuário pode atualizar apenas seu próprio perfil
+2. **Dashboard is a redirect**: Currently just redirects to `/protocol`, not a real page.
 
-**Trigger:** auto-criar registro em `profiles` quando um novo usuário se registra via `auth.users`
+## Root Cause
 
-### 2. Criar página de Auth (`src/pages/Auth.tsx`)
-- Página com formulário de **login** e **signup** (toggle entre os dois)
-- Usa `supabase.auth.signUp()` e `supabase.auth.signInWithPassword()`
-- Design consistente com o estilo KOR (font-display, tracking, minimalista)
-- Redirecionamento: após login → dashboard (se onboarding completo) ou onboarding
+When a non-authenticated user completes onboarding:
+- `handleComplete` in Onboarding.tsx checks `if (user)` — user is null
+- Profile is stored in memory only (Zustand), never saved to DB
+- User goes to `/auth`, signs up, but Auth.tsx only calls `generateRuleBasedProtocol` (not the AI one)
+- After login, Protocol.tsx tries to load from DB (nothing there) and generate from store (store may be empty after page refresh)
 
-### 3. Criar página de Reset de Senha (`src/pages/ResetPassword.tsx`)
-- Formulário para definir nova senha após clicar no link de recuperação
-- Chama `supabase.auth.updateUser({ password })`
+## Desired Flow
 
-### 4. Fluxo do Onboarding atualizado (`src/pages/Onboarding.tsx`)
-- Após completar o formulário, redirecionar para `/auth` (signup/login)
-- Após autenticação bem-sucedida, salvar `profile_data` na tabela `profiles` e redirecionar para `/dashboard`
-
-### 5. Proteger rotas (`src/App.tsx`)
-- Criar componente `ProtectedRoute` que verifica sessão Supabase
-- Dashboard e Goals ficam protegidos
-- Se não autenticado → redireciona para `/auth`
-
-### 6. Hook de autenticação (`src/hooks/useAuth.ts`)
-- Hook com `onAuthStateChange` + `getSession`
-- Expõe `user`, `session`, `loading`, `signOut`
-- Carrega `profile_data` do Supabase ao fazer login e popula o Zustand store
-
-### 7. Atualizar store (`src/store/useAppStore.ts`)
-- Adicionar ação `loadProfileFromDB` para hidratar o estado com dados do Supabase
-- Adicionar ação `saveProfileToDB` para persistir no Supabase
-
-### 8. Atualizar rotas (`src/App.tsx`)
-- `/auth` → página de login/signup
-- `/reset-password` → página de redefinição de senha
-- Dashboard e Goals protegidos com `ProtectedRoute`
-
-### Fluxo do Usuário
 ```text
-Landing → Onboarding (formulário) → Auth (signup/login) → Dashboard
-                                                              ↑
-Landing → Auth (login) ──────────────────────────────────────┘
+Landing → Auth (login/signup) → Onboarding (protected) → Dashboard (real page) → Protocol
 ```
 
-### Detalhes Técnicos
-- Profile data armazenado como JSONB para flexibilidade (não precisa de uma coluna por campo)
-- `onAuthStateChange` configurado ANTES de `getSession()` conforme boas práticas do Supabase
-- Redirect URL configurado para `window.location.origin`
+## Changes
+
+### 1. Make Onboarding a protected route (`src/App.tsx`)
+- Wrap `/onboarding` in `<ProtectedRoute>`
+- Update Landing.tsx CTAs to navigate to `/auth` instead of `/onboarding`
+
+### 2. Fix ProtectedRoute (`src/components/ProtectedRoute.tsx`)
+- Allow onboarding access for authenticated users who haven't completed it
+- Redirect to `/dashboard` (not `/protocol`) after onboarding
+
+### 3. Fix Onboarding completion (`src/pages/Onboarding.tsx`)
+- Since user is now always authenticated, `handleComplete` always has `user`
+- Navigate to `/dashboard` after completion instead of `/protocol`
+- Ensure AI protocol generation is called
+
+### 4. Restore Dashboard as real page (`src/pages/Dashboard.tsx`)
+- Show a summary/overview with user greeting
+- Show protocol status (generated or generating)
+- Button to view full protocol at `/protocol`
+- Button to regenerate protocol
+
+### 5. Fix Auth redirect (`src/pages/Auth.tsx`)
+- After login: redirect to `/dashboard` if onboarding complete, `/onboarding` if not
+- After signup: redirect to `/onboarding`
+
+### 6. Fix protocol generation reliability
+- Add better error logging in `generateAIProtocol`
+- If Protocol.tsx has no protocol and no store profile, load profile from DB directly as fallback
+- Ensure `loadOrGenerate` in Protocol.tsx fetches profile from DB if store is empty
+
+## Files Modified
+- `src/App.tsx` — make onboarding protected
+- `src/components/ProtectedRoute.tsx` — fix redirect logic
+- `src/pages/Landing.tsx` — CTAs point to `/auth`
+- `src/pages/Auth.tsx` — fix redirects
+- `src/pages/Onboarding.tsx` — navigate to `/dashboard`
+- `src/pages/Dashboard.tsx` — real dashboard page with protocol status
+- `src/pages/Protocol.tsx` — fallback to load profile from DB if store is empty
 
