@@ -87,29 +87,29 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    
-    // Extract tool call result
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall || toolCall.function.name !== "generate_full_protocol") {
-      // Fallback: try to parse content as JSON
-      const content = data.choices?.[0]?.message?.content;
-      if (content) {
-        try {
-          const parsed = JSON.parse(content);
-          return new Response(JSON.stringify({ protocol: parsed }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        } catch { /* fall through */ }
+
+    // Extract structured result from tool call first
+    const toolCall = data?.choices?.[0]?.message?.tool_calls?.[0];
+    if (toolCall?.function?.name === "generate_full_protocol") {
+      const parsedArgs = tryParseJson(toolCall.function.arguments);
+      if (parsedArgs) {
+        return new Response(JSON.stringify({ protocol: parsedArgs }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
-      console.error("AI did not return structured protocol data");
-      throw new Error("Erro ao processar resposta. Tente novamente.");
     }
 
-    const protocolData = JSON.parse(toolCall.function.arguments);
+    // Fallback: parse JSON from message content (raw JSON or markdown code block)
+    const content = data?.choices?.[0]?.message?.content;
+    const parsedContent = extractProtocolFromContent(content);
+    if (parsedContent) {
+      return new Response(JSON.stringify({ protocol: parsedContent }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    return new Response(JSON.stringify({ protocol: protocolData }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("AI did not return valid structured protocol data", JSON.stringify(data));
+    throw new Error("Erro ao processar resposta. Tente novamente.");
   } catch (e) {
     console.error("[generate-protocol] error:", e);
     const safeMessages = [
