@@ -3,15 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppStore } from '@/store/useAppStore';
-import {
-  loadLatestProtocol,
-  mapProfileToFormResponse,
-  saveFormResponse,
-  generateRuleBasedProtocol,
-  type ProtocolBlock,
-  type FormResponseData,
-} from '@/lib/protocolRuleEngine';
-import { AlertTriangle, Clock, Dumbbell, DollarSign, Briefcase, Eye } from 'lucide-react';
+import { loadLatestAIProtocol, generateAIProtocol, saveAIProtocol, type AIProtocolData } from '@/lib/aiProtocolService';
+import { mapProfileToFormResponse, saveFormResponse } from '@/lib/protocolRuleEngine';
+import { AlertTriangle, Clock, Dumbbell, DollarSign, Briefcase, Eye, RefreshCw } from 'lucide-react';
 import ProtocolHeader from '@/components/protocol/ProtocolHeader';
 import ProtocolOverview from '@/components/protocol/ProtocolOverview';
 import ProtocolRoutine from '@/components/protocol/ProtocolRoutine';
@@ -26,84 +20,132 @@ const Protocol = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const storeProfile = useAppStore((s) => s.profile);
 
-  const [blocks, setBlocks] = useState<ProtocolBlock[]>([]);
-  const [formData, setFormData] = useState<FormResponseData | null>(null);
+  const [aiProtocol, setAiProtocol] = useState<AIProtocolData | null>(null);
   const [protocolDate, setProtocolDate] = useState<string>('');
   const [loadingProtocol, setLoadingProtocol] = useState(true);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
 
-  useEffect(() => {
-    const loadOrGenerate = async () => {
-      if (!user) {
+  const loadOrGenerate = async () => {
+    if (!user) {
+      setLoadingProtocol(false);
+      return;
+    }
+
+    try {
+      // Try to load existing AI protocol
+      const existing = await loadLatestAIProtocol(user.id);
+      if (existing) {
+        setAiProtocol(existing.protocolData);
+        setProtocolDate(existing.createdAt);
         setLoadingProtocol(false);
         return;
       }
 
-      try {
-        const existing = await loadLatestProtocol(user.id);
-
-        if (existing && existing.blocks.length > 0) {
-          setBlocks(existing.blocks);
-          setFormData(existing.formData);
-          setProtocolDate(existing.createdAt);
-          setLoadingProtocol(false);
-          return;
-        }
-
-        if (storeProfile) {
+      // No existing protocol — generate one if we have profile data
+      if (storeProfile) {
+        setGenerating(true);
+        const result = await generateAIProtocol(storeProfile);
+        if (result) {
+          // Save form response first
           const mapped = mapProfileToFormResponse(storeProfile);
           const responseId = await saveFormResponse(user.id, mapped);
-
           if (responseId) {
-            const result = await generateRuleBasedProtocol(user.id, responseId, mapped);
-            if (result) {
-              setBlocks(result.blocks);
-              setFormData(mapped);
-              setProtocolDate(new Date().toISOString());
-            }
+            await saveAIProtocol(user.id, responseId, result);
           }
+          setAiProtocol(result);
+          setProtocolDate(new Date().toISOString());
+        } else {
+          setError('Não foi possível gerar o protocolo via IA. Tente novamente.');
         }
-      } catch (err: any) {
-        setError(err.message || 'Erro ao carregar protocolo');
-      } finally {
-        setLoadingProtocol(false);
+        setGenerating(false);
       }
-    };
+    } catch (err: any) {
+      setError(err.message || 'Erro ao carregar protocolo');
+      setGenerating(false);
+    } finally {
+      setLoadingProtocol(false);
+    }
+  };
 
+  useEffect(() => {
     if (!authLoading) loadOrGenerate();
   }, [user, authLoading, storeProfile]);
 
+  const handleRegenerate = async () => {
+    if (!user || !storeProfile) return;
+    setGenerating(true);
+    setError(null);
+    try {
+      const result = await generateAIProtocol(storeProfile);
+      if (result) {
+        const mapped = mapProfileToFormResponse(storeProfile);
+        const responseId = await saveFormResponse(user.id, mapped);
+        if (responseId) {
+          await saveAIProtocol(user.id, responseId, result);
+        }
+        setAiProtocol(result);
+        setProtocolDate(new Date().toISOString());
+      } else {
+        setError('Falha ao regenerar protocolo.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erro ao regenerar');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const profile = storeProfile;
-  const isEntrepreneurEnabled = profile?.entrepreneur?.enabled || formData?.modo_empresario;
+  const isEntrepreneurEnabled = profile?.entrepreneur?.enabled || aiProtocol?.entrepreneur?.enabled;
 
   if (authLoading || loadingProtocol) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
           <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-xs tracking-[0.3em] text-muted-foreground uppercase">Gerando seu protocolo estratégico...</p>
+          <p className="text-xs tracking-[0.3em] text-muted-foreground uppercase">Carregando protocolo...</p>
         </motion.div>
       </div>
     );
   }
 
-  if (error) {
+  if (generating) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center max-w-md">
+          <div className="w-10 h-10 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin mx-auto mb-6" />
+          <h2 className="font-display text-lg font-bold mb-2">Gerando seu protocolo com IA...</h2>
+          <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">
+            Analisando seus dados e criando um plano 100% personalizado. Isso pode levar até 30 segundos.
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (error && !aiProtocol) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <div className="glass-card p-8 max-w-md text-center">
           <AlertTriangle className="w-8 h-8 text-destructive mx-auto mb-4" />
           <h2 className="font-display text-lg font-bold mb-2">Erro ao carregar protocolo</h2>
           <p className="text-sm text-muted-foreground mb-6">{error}</p>
-          <button onClick={() => navigate('/onboarding')} className="px-6 py-3 bg-primary text-primary-foreground text-sm font-display tracking-widest uppercase">
-            Refazer Onboarding
-          </button>
+          <div className="flex gap-3 justify-center">
+            <button onClick={handleRegenerate} className="px-6 py-3 bg-primary text-primary-foreground text-sm font-display tracking-widest uppercase">
+              Tentar Novamente
+            </button>
+            <button onClick={() => navigate('/onboarding')} className="px-6 py-3 border border-border text-sm font-display tracking-widest uppercase">
+              Refazer Onboarding
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (blocks.length === 0 && !profile) {
+  if (!aiProtocol && !profile) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <div className="glass-card p-8 max-w-md text-center">
@@ -136,12 +178,12 @@ const Protocol = () => {
         user={user}
         signOut={signOut}
         protocolDate={protocolDate}
-        formData={formData}
-        blocksCount={blocks.length}
+        formData={null}
+        blocksCount={0}
       />
 
-      {/* Tabs */}
-      <div className="border-b border-border px-6 md:px-12 flex gap-0 overflow-x-auto">
+      {/* Tabs + Regenerate */}
+      <div className="border-b border-border px-6 md:px-12 flex items-center gap-0 overflow-x-auto">
         {visibleTabs.map((tab) => (
           <button
             key={tab.id}
@@ -153,16 +195,26 @@ const Protocol = () => {
             {tab.icon} {tab.label}
           </button>
         ))}
+        <div className="ml-auto pl-4">
+          <button
+            onClick={handleRegenerate}
+            disabled={generating}
+            className="flex items-center gap-2 px-4 py-2 text-xs tracking-wider uppercase font-display text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${generating ? 'animate-spin' : ''}`} />
+            Regenerar
+          </button>
+        </div>
       </div>
 
       {/* Content */}
       <div className="px-6 md:px-12 py-8 max-w-5xl">
         <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-          {activeTab === 'overview' && <ProtocolOverview blocks={blocks} formData={formData} profile={profile} />}
-          {activeTab === 'routine' && <ProtocolRoutine profile={profile} />}
-          {activeTab === 'physical' && <ProtocolPhysical profile={profile} />}
-          {activeTab === 'financial' && <ProtocolFinancial profile={profile} />}
-          {activeTab === 'entrepreneur' && <ProtocolEntrepreneur profile={profile} />}
+          {activeTab === 'overview' && <ProtocolOverview aiProtocol={aiProtocol} profile={profile} />}
+          {activeTab === 'routine' && <ProtocolRoutine aiProtocol={aiProtocol} profile={profile} />}
+          {activeTab === 'physical' && <ProtocolPhysical aiProtocol={aiProtocol} profile={profile} />}
+          {activeTab === 'financial' && <ProtocolFinancial aiProtocol={aiProtocol} profile={profile} />}
+          {activeTab === 'entrepreneur' && <ProtocolEntrepreneur aiProtocol={aiProtocol} profile={profile} />}
         </motion.div>
       </div>
     </div>
