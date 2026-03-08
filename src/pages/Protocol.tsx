@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { loadLatestAIProtocol, generateAIProtocol, saveAIProtocol, type AIProtocolData } from '@/lib/aiProtocolService';
 import { mapProfileToFormResponse, saveFormResponse } from '@/lib/protocolRuleEngine';
 import { AlertTriangle, Clock, Dumbbell, DollarSign, Briefcase, Eye, RefreshCw } from 'lucide-react';
+import ProtocolAssistant from '@/components/protocol/ProtocolAssistant';
 import ProtocolHeader from '@/components/protocol/ProtocolHeader';
 import ProtocolOverview from '@/components/protocol/ProtocolOverview';
 import ProtocolRoutine from '@/components/protocol/ProtocolRoutine';
