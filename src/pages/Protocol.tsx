@@ -173,6 +173,10 @@ const Protocol = () => {
 
   const visibleTabs = tabs.filter(t => !t.conditional);
 
+  const handleProtocolUpdated = (newProtocol: AIProtocolData) => {
+    setAiProtocol(newProtocol);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <ProtocolHeader
@@ -218,6 +222,9 @@ const Protocol = () => {
           {activeTab === 'entrepreneur' && <ProtocolEntrepreneur aiProtocol={aiProtocol} profile={profile} />}
         </motion.div>
       </div>
+
+      {/* AI Assistant */}
+      <ProtocolAssistant aiProtocol={aiProtocol} onProtocolUpdated={handleProtocolUpdated} />
     </div>
   );
 };
