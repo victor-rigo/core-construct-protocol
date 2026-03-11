@@ -131,15 +131,17 @@ const ProtocolPhysical = ({ aiProtocol, profile }: Props) => {
             </div>
 
             {/* Hydration */}
-            <div className="p-4 bg-secondary/30 border border-border rounded-lg mb-4">
-              <h4 className="text-xs tracking-widest uppercase text-muted-foreground mb-2 font-display">💧 Hidratação</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                <div><span className="text-muted-foreground">Atual:</span> {nutritionData.hydration.currentIntake}</div>
-                <div><span className="text-muted-foreground">Recomendado:</span> {nutritionData.hydration.recommendedLiters}L</div>
-                <div><span className="text-muted-foreground">({nutritionData.hydration.recommendedMl}ml)</span></div>
-                <div className="font-semibold">{nutritionData.hydration.difference}</div>
+            {nutritionData.hydration && (
+              <div className="p-4 bg-secondary/30 border border-border rounded-lg mb-4">
+                <h4 className="text-xs tracking-widest uppercase text-muted-foreground mb-2 font-display">💧 Hidratação</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div><span className="text-muted-foreground">Atual:</span> {nutritionData.hydration.currentIntake}</div>
+                  <div><span className="text-muted-foreground">Recomendado:</span> {nutritionData.hydration.recommendedLiters}L</div>
+                  <div><span className="text-muted-foreground">({nutritionData.hydration.recommendedMl}ml)</span></div>
+                  <div className="font-semibold">{nutritionData.hydration.difference}</div>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Meals */}
             <h4 className="text-xs tracking-widest uppercase text-muted-foreground mb-3 font-display">Refeições</h4>
