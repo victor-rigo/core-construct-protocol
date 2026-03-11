@@ -167,7 +167,7 @@ const ProtocolPhysical = ({ aiProtocol, profile }: Props) => {
             </div>
 
             {/* Supplements */}
-            {nutritionData.supplements.length > 0 && (
+            {nutritionData.supplements?.length > 0 && (
               <>
                 <h4 className="text-xs tracking-widest uppercase text-muted-foreground mb-3 mt-6 font-display">Suplementação</h4>
                 <div className="space-y-2">
