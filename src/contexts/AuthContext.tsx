@@ -31,16 +31,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .select('profile_data, has_completed_onboarding')
       .eq('id', userId)
       .single()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Failed to load profile:', error);
+          return;
+        }
         if (data) {
           if (data.profile_data) {
             setProfile(data.profile_data as any);
           }
           setHasCompletedOnboarding(data.has_completed_onboarding ?? false);
         }
-      })
-      .catch((err) => {
-        console.error('Failed to load profile:', err);
       });
   };
 
