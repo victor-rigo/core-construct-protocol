@@ -25,58 +25,68 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const { setProfile, setHasCompletedOnboarding } = useAppStore();
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadProfile = async (userId: string) => {
-      try {
-        const { data } = await supabase
-          .from('profiles')
-          .select('profile_data, has_completed_onboarding')
-          .eq('id', userId)
-          .single();
-
-        if (data && isMounted) {
+  const loadProfile = (userId: string) => {
+    supabase
+      .from('profiles')
+      .select('profile_data, has_completed_onboarding')
+      .eq('id', userId)
+      .single()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Failed to load profile:', error);
+          return;
+        }
+        if (data) {
           if (data.profile_data) {
             setProfile(data.profile_data as any);
           }
           setHasCompletedOnboarding(data.has_completed_onboarding ?? false);
         }
-      } catch (err) {
-        console.error('Failed to load profile:', err);
-      }
-    };
+      });
+  };
 
-    // Set up listener BEFORE getSession
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
-        if (!isMounted) return;
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-
-        if (newSession?.user) {
-          await loadProfile(newSession.user.id);
-        }
-        setLoading(false);
-      }
-    );
-
-    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
-      if (!isMounted) return;
+  useEffect(() => {
+    // 1. Restore session first
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
 
       if (currentSession?.user) {
-        await loadProfile(currentSession.user.id);
+        loadProfile(currentSession.user.id);
       }
+
+      setLoading(false);
+    }).catch(() => {
       setLoading(false);
     });
 
+    // 2. Listen for subsequent auth changes (fire-and-forget, no await)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+
+        if (newSession?.user) {
+          loadProfile(newSession.user.id);
+        } else {
+          setProfile(null as any);
+          setHasCompletedOnboarding(false);
+        }
+
+        setLoading(false);
+      }
+    );
+
+    // 3. Timeout safety net
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+
     return () => {
-      isMounted = false;
       subscription.unsubscribe();
+      clearTimeout(timeout);
     };
-  }, [setProfile, setHasCompletedOnboarding]);
+  }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut();
