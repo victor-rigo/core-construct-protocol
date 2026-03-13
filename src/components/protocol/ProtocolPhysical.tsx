@@ -10,7 +10,24 @@ interface Props {
 
 const ProtocolPhysical = ({ aiProtocol, profile }: Props) => {
   const physicalData = aiProtocol?.physical;
-  const nutritionData = aiProtocol?.nutrition;
+  const rawNutritionData = aiProtocol?.nutrition;
+
+  // Recalculate totals from actual meal foods to ensure consistency
+  const nutritionData = rawNutritionData ? (() => {
+    const meals = (rawNutritionData.meals || []).map((meal: any) => {
+      const foods = meal.foods || [];
+      const totalCalories = foods.reduce((sum: number, f: any) => sum + (f.calories || 0), 0);
+      const totalProtein = foods.reduce((sum: number, f: any) => sum + (f.protein || 0), 0);
+      return { ...meal, totalCalories, totalProtein };
+    });
+    const dailyCalories = meals.reduce((sum: number, m: any) => sum + m.totalCalories, 0);
+    const macros = {
+      protein: meals.reduce((sum: number, m: any) => (m.foods || []).reduce((s: number, f: any) => s + (f.protein || 0), sum), 0),
+      carbs: meals.reduce((sum: number, m: any) => (m.foods || []).reduce((s: number, f: any) => s + (f.carbs || 0), sum), 0),
+      fat: meals.reduce((sum: number, m: any) => (m.foods || []).reduce((s: number, f: any) => s + (f.fat || 0), sum), 0),
+    };
+    return { ...rawNutritionData, meals, dailyCalories, macros };
+  })() : null;
 
   if (!physicalData && !profile) {
     return (
@@ -253,24 +270,33 @@ const FallbackPhysical = ({ profile, protocol }: { profile: UserProfile; protoco
         </h3>
         <div className="glass-card p-6">
           <p className="text-sm text-muted-foreground mb-4">{protocol.nutritionPlan.goal}</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="text-center p-3 bg-secondary/50 border border-border rounded">
-              <p className="text-lg font-display font-bold">{protocol.nutritionPlan.dailyCalories}</p>
-              <p className="text-xs text-muted-foreground">kcal/dia</p>
-            </div>
-            <div className="text-center p-3 bg-secondary/50 border border-border rounded">
-              <p className="text-lg font-display font-bold">{protocol.nutritionPlan.macros.protein}g</p>
-              <p className="text-xs text-muted-foreground">Proteína</p>
-            </div>
-            <div className="text-center p-3 bg-secondary/50 border border-border rounded">
-              <p className="text-lg font-display font-bold">{protocol.nutritionPlan.macros.carbs}g</p>
-              <p className="text-xs text-muted-foreground">Carboidratos</p>
-            </div>
-            <div className="text-center p-3 bg-secondary/50 border border-border rounded">
-              <p className="text-lg font-display font-bold">{protocol.nutritionPlan.macros.fat}g</p>
-              <p className="text-xs text-muted-foreground">Gorduras</p>
-            </div>
-          </div>
+          {(() => {
+            const allFoods = protocol.nutritionPlan.meals.flatMap((m: any) => m.foods || []);
+            const calcCals = allFoods.reduce((s: number, f: any) => s + (f.calories || 0), 0);
+            const calcProt = allFoods.reduce((s: number, f: any) => s + (f.protein || 0), 0);
+            const calcCarbs = allFoods.reduce((s: number, f: any) => s + (f.carbs || 0), 0);
+            const calcFat = allFoods.reduce((s: number, f: any) => s + (f.fat || 0), 0);
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="text-center p-3 bg-secondary/50 border border-border rounded">
+                  <p className="text-lg font-display font-bold">{calcCals}</p>
+                  <p className="text-xs text-muted-foreground">kcal/dia</p>
+                </div>
+                <div className="text-center p-3 bg-secondary/50 border border-border rounded">
+                  <p className="text-lg font-display font-bold">{calcProt}g</p>
+                  <p className="text-xs text-muted-foreground">Proteína</p>
+                </div>
+                <div className="text-center p-3 bg-secondary/50 border border-border rounded">
+                  <p className="text-lg font-display font-bold">{calcCarbs}g</p>
+                  <p className="text-xs text-muted-foreground">Carboidratos</p>
+                </div>
+                <div className="text-center p-3 bg-secondary/50 border border-border rounded">
+                  <p className="text-lg font-display font-bold">{calcFat}g</p>
+                  <p className="text-xs text-muted-foreground">Gorduras</p>
+                </div>
+              </div>
+            );
+          })()}
           <h4 className="text-xs tracking-widest uppercase text-muted-foreground mb-3 font-display">Refeições</h4>
           <div className="space-y-3">
             {protocol.nutritionPlan.meals.map((meal: any, i: number) => (

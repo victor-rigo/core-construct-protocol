@@ -559,6 +559,28 @@ function generateNutritionPlan(profile: UserProfile): NutritionPlan {
     return { name: slot.name, time: slot.time, foods, totalCalories, totalProtein };
   });
 
+  // === SCALE PORTIONS TO MATCH TARGET CALORIES ===
+  const actualTotal = meals.reduce((sum, m) => sum + m.totalCalories, 0);
+  if (actualTotal > 0 && Math.abs(actualTotal - dailyCalories) > 50) {
+    const scaleFactor = dailyCalories / actualTotal;
+    for (const meal of meals) {
+      for (const food of meal.foods) {
+        food.calories = Math.round(food.calories * scaleFactor);
+        food.protein = Math.round(food.protein * scaleFactor);
+        food.carbs = Math.round(food.carbs * scaleFactor);
+        food.fat = Math.round(food.fat * scaleFactor);
+        // Scale quantity text if numeric
+        const qtyMatch = food.quantity.match(/^(\d+(?:\.\d+)?)(.*)/);
+        if (qtyMatch) {
+          const newQty = Math.round(parseFloat(qtyMatch[1]) * scaleFactor);
+          food.quantity = `${newQty}${qtyMatch[2]}`;
+        }
+      }
+      meal.totalCalories = meal.foods.reduce((s, f) => s + f.calories, 0);
+      meal.totalProtein = meal.foods.reduce((s, f) => s + f.protein, 0);
+    }
+  }
+
   // === HYDRATION ===
   const recommendedWaterMl = Math.round(weight * 35);
   const recommendedWaterL = (recommendedWaterMl / 1000).toFixed(1);

@@ -206,6 +206,7 @@ Você é um consultor de elite que combina:
 13. Adapte refeições aos horários de trabalho do usuário.
 14. Para o módulo financeiro, use os gastos reais informados pelo usuário.
 15. O módulo empresário só deve ser gerado se modo_empresario === true.
+16. VALIDAÇÃO OBRIGATÓRIA: A soma de todas as calorias dos alimentos de todas as refeições DEVE ser EXATAMENTE igual ao valor de dailyCalories. A soma de protein, carbs e fat de todos os alimentos DEVE ser igual aos valores em macros. Recalcule os itens alimentares até que os totais batam.
 </rules>
 
 <output_instructions>
