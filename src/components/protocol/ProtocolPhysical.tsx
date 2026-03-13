@@ -10,7 +10,24 @@ interface Props {
 
 const ProtocolPhysical = ({ aiProtocol, profile }: Props) => {
   const physicalData = aiProtocol?.physical;
-  const nutritionData = aiProtocol?.nutrition;
+  const rawNutritionData = aiProtocol?.nutrition;
+
+  // Recalculate totals from actual meal foods to ensure consistency
+  const nutritionData = rawNutritionData ? (() => {
+    const meals = (rawNutritionData.meals || []).map((meal: any) => {
+      const foods = meal.foods || [];
+      const totalCalories = foods.reduce((sum: number, f: any) => sum + (f.calories || 0), 0);
+      const totalProtein = foods.reduce((sum: number, f: any) => sum + (f.protein || 0), 0);
+      return { ...meal, totalCalories, totalProtein };
+    });
+    const dailyCalories = meals.reduce((sum: number, m: any) => sum + m.totalCalories, 0);
+    const macros = {
+      protein: meals.reduce((sum: number, m: any) => (m.foods || []).reduce((s: number, f: any) => s + (f.protein || 0), sum), 0),
+      carbs: meals.reduce((sum: number, m: any) => (m.foods || []).reduce((s: number, f: any) => s + (f.carbs || 0), sum), 0),
+      fat: meals.reduce((sum: number, m: any) => (m.foods || []).reduce((s: number, f: any) => s + (f.fat || 0), sum), 0),
+    };
+    return { ...rawNutritionData, meals, dailyCalories, macros };
+  })() : null;
 
   if (!physicalData && !profile) {
     return (
