@@ -1,69 +1,32 @@
 
 
-## Plano: Autenticação com Supabase + Persistência de Dados
+# Plan: Fix Calorie and Macro Calculations
 
-### Visão Geral
-Criar sistema de login/signup após o onboarding, salvar o perfil do usuário no Supabase e proteger o dashboard para usuários autenticados.
+## Problem
+The displayed daily calories and macronutrients (protein, carbs, fat) don't match the sum of what's actually in the proposed meals. Two sources of inconsistency:
 
-### 1. Criar tabelas no Supabase (migração SQL)
+1. **Fallback engine** (`protocolEngine.ts`): Calculates TDEE-based targets (e.g., 2800 kcal) but assigns fixed food portions that sum to a different total (e.g., 1900 kcal). No scaling is applied.
+2. **AI-generated protocol**: The AI may return `dailyCalories` that doesn't match the sum of `meal.totalCalories`.
 
-**Tabela `profiles`:**
-- `id` (UUID, FK → auth.users, PK)
-- `email` (text)
-- `created_at` (timestamptz)
-- `updated_at` (timestamptz)
-- `profile_data` (JSONB — armazena todo o UserProfile do onboarding)
-- `has_completed_onboarding` (boolean, default false)
+## Solution
 
-**RLS Policies:**
-- SELECT: usuário pode ler apenas seu próprio perfil
-- INSERT: usuário autenticado pode inserir seu próprio perfil
-- UPDATE: usuário pode atualizar apenas seu próprio perfil
+### 1. Display component — always compute from meals (`ProtocolPhysical.tsx`)
+Instead of showing `nutritionData.dailyCalories` and `nutritionData.macros` directly, recalculate them by summing across all meals' foods. This guarantees the header numbers always match the meal breakdown.
 
-**Trigger:** auto-criar registro em `profiles` quando um novo usuário se registra via `auth.users`
+- `displayCalories = sum of all foods' calories across all meals`
+- `displayProtein = sum of all foods' protein`
+- `displayCarbs = sum of all foods' carbs`  
+- `displayFat = sum of all foods' fat`
+- Also recalculate each meal's `totalCalories` and `totalProtein` from its foods
 
-### 2. Criar página de Auth (`src/pages/Auth.tsx`)
-- Página com formulário de **login** e **signup** (toggle entre os dois)
-- Usa `supabase.auth.signUp()` e `supabase.auth.signInWithPassword()`
-- Design consistente com o estilo KOR (font-display, tracking, minimalista)
-- Redirecionamento: após login → dashboard (se onboarding completo) ou onboarding
+### 2. Fallback engine — scale portions to match targets (`protocolEngine.ts`)
+After building meals with fixed food items, calculate a scaling factor (`targetCalories / actualCalories`) and multiply all food quantities proportionally. This makes the fallback engine produce meals that actually add up to the TDEE-calculated target.
 
-### 3. Criar página de Reset de Senha (`src/pages/ResetPassword.tsx`)
-- Formulário para definir nova senha após clicar no link de recuperação
-- Chama `supabase.auth.updateUser({ password })`
+### 3. AI prompt — add validation instruction (`generate-protocol/index.ts`)
+Add a rule to the system prompt: "The sum of all meal calories MUST equal dailyCalories. The sum of all food macros across meals MUST equal the macros object."
 
-### 4. Fluxo do Onboarding atualizado (`src/pages/Onboarding.tsx`)
-- Após completar o formulário, redirecionar para `/auth` (signup/login)
-- Após autenticação bem-sucedida, salvar `profile_data` na tabela `profiles` e redirecionar para `/dashboard`
-
-### 5. Proteger rotas (`src/App.tsx`)
-- Criar componente `ProtectedRoute` que verifica sessão Supabase
-- Dashboard e Goals ficam protegidos
-- Se não autenticado → redireciona para `/auth`
-
-### 6. Hook de autenticação (`src/hooks/useAuth.ts`)
-- Hook com `onAuthStateChange` + `getSession`
-- Expõe `user`, `session`, `loading`, `signOut`
-- Carrega `profile_data` do Supabase ao fazer login e popula o Zustand store
-
-### 7. Atualizar store (`src/store/useAppStore.ts`)
-- Adicionar ação `loadProfileFromDB` para hidratar o estado com dados do Supabase
-- Adicionar ação `saveProfileToDB` para persistir no Supabase
-
-### 8. Atualizar rotas (`src/App.tsx`)
-- `/auth` → página de login/signup
-- `/reset-password` → página de redefinição de senha
-- Dashboard e Goals protegidos com `ProtectedRoute`
-
-### Fluxo do Usuário
-```text
-Landing → Onboarding (formulário) → Auth (signup/login) → Dashboard
-                                                              ↑
-Landing → Auth (login) ──────────────────────────────────────┘
-```
-
-### Detalhes Técnicos
-- Profile data armazenado como JSONB para flexibilidade (não precisa de uma coluna por campo)
-- `onAuthStateChange` configurado ANTES de `getSession()` conforme boas práticas do Supabase
-- Redirect URL configurado para `window.location.origin`
+## Files Modified
+- `src/components/protocol/ProtocolPhysical.tsx` — recalculate displayed totals from meal foods
+- `src/lib/protocolEngine.ts` — scale food portions to match TDEE targets
+- `supabase/functions/generate-protocol/index.ts` — add consistency rule to AI prompt
 
